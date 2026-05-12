@@ -89,6 +89,10 @@ void dXorg::setupSharedMem() {
     if (sharedMem.isAttached())
         return;
 
+    // Detach from any stale segment left by a previous crashed session
+    if (sharedMem.error() != QSharedMemory::NoError)
+        sharedMem.detach();
+
     qDebug() << "Shared memory is not attached, creating it";
     sharedMem.setKey(getRandomString());
 
@@ -96,9 +100,14 @@ void dXorg::setupSharedMem() {
         if (sharedMem.error() == QSharedMemory::AlreadyExists) {
             qDebug() << "Shared memory already exists, attaching to it";
 
-            if (!sharedMem.attach())
-                qCritical() << "Unable to attach to the shared memory: " << sharedMem.errorString();
-
+            if (!sharedMem.attach()) {
+                // Stale segment: destroy and recreate with a fresh key
+                qWarning() << "Attach failed, recreating shared memory: " << sharedMem.errorString();
+                sharedMem.detach();
+                sharedMem.setKey(getRandomString());
+                if (!sharedMem.create(SHARED_MEM_SIZE))
+                    qCritical() << "Unable to create the shared memory: " << sharedMem.errorString();
+            }
         } else
             qCritical() << "Unable to create the shared memory: " << sharedMem.errorString();
     }
@@ -155,8 +164,15 @@ QString dXorg::getClocksRawData() {
             } else
                 qWarning() << "Shared memory data pointer is invalid: " << sharedMem.errorString();
             sharedMem.unlock();
-        } else
+        } else {
             qWarning() << "Unable to lock the shared memory: " << sharedMem.errorString();
+            // Attempt to recover from a stale/corrupt shared memory segment
+            if (sharedMem.isAttached()) {
+                sharedMem.detach();
+                setupSharedMem();
+                sendSharedMemInfoToDaemon();
+            }
+        }
     }
 
     return data;
@@ -739,8 +755,10 @@ QStringList dXorg::loadPowerPlayTable(const QString &file) {
 }
 
 int dXorg::getCurrentPowerPlayTableId(const QString &file) {
+    if (file.isEmpty())
+        return 0;
 
-    QStringList sl = getValueFromSysFsFile(file).split(QString::SkipEmptyParts);
+    QStringList sl = getValueFromSysFsFile(file).split('\n', QString::SkipEmptyParts);
 
     if (sl.isEmpty() || sl.at(0) == "-1")
         return 0;

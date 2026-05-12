@@ -4,6 +4,11 @@
 
 int main(int argc, char *argv[])
 {
+    // Force XCB (X11) platform plugin unless the user has explicitly chosen another.
+    // Wayland support in this Qt5 app is incomplete and causes QSocketNotifier warnings.
+    if (qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM"))
+        qputenv("QT_QPA_PLATFORM", "xcb");
+
     qDebug() << "Creating application object";
 
     QApplication a(argc, argv);

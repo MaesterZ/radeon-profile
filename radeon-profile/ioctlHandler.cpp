@@ -6,13 +6,14 @@
 #include <cstdio> // snprintf()
 #include <unistd.h> // close(), usleep()
 #include <fcntl.h> // open()
+#include <dirent.h> // opendir(), readdir(), closedir()
 
 #ifndef NO_IOCTL // Include libdrm headers only if NO_IOCTL is not defined
 #  include <libdrm/drm.h>
 #endif
 
 
-#define PATH_SIZE 20
+#define PATH_SIZE 32
 #define NAME_SIZE 10
 
 
@@ -45,9 +46,30 @@ ioctlHandler::ioctlHandler(unsigned card){
     fd = -1;
     Q_UNUSED(card);
 #else
-    fd = openPath("/dev/dri/renderD", 128+card); // Try /dev/dri/renderD<128+N>
-    if(fd < 0) // /dev/dri/renderD<128+N> not available
-        fd = openPath("/dev/dri/card", card); // Try /dev/dri/card<N>
+    // The renderD index doesn't always equal 128+cardIndex (e.g. card1 may map to renderD128).
+    // Look up the actual render node from sysfs to get the correct index.
+    fd = -1;
+    char sysfsPath[PATH_SIZE * 2];
+    snprintf(sysfsPath, sizeof(sysfsPath), "/sys/class/drm/card%u/device/drm", card);
+    DIR *dir = opendir(sysfsPath);
+    if (dir) {
+        struct dirent *entry;
+        while ((entry = readdir(dir)) != NULL) {
+            unsigned renderIndex;
+            if (sscanf(entry->d_name, "renderD%u", &renderIndex) == 1) {
+                fd = openPath("/dev/dri/renderD", renderIndex);
+                break;
+            }
+        }
+        closedir(dir);
+    }
+
+    if (fd < 0) { // sysfs lookup failed, fall back to the conventional index
+        qDebug() << "Render node sysfs lookup failed for card" << card << ", falling back to 128+N";
+        fd = openPath("/dev/dri/renderD", 128+card);
+    }
+    if (fd < 0) // render node not available, fall back to card device (needs DRM Master or root)
+        fd = openPath("/dev/dri/card", card);
 #endif
 }
 

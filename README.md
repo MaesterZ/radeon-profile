@@ -1,7 +1,12 @@
+# AMD Radeon Profile
+
 Simple application to read current clocks of ATi Radeon cards (xf86-video-ati, xf86-video-amdgpu).
 
-# xf86-video-ati and xf86-video-amdgpu  driver
-Install and run radeon-profile-daemon (https://github.com/marazmista/radeon-profile-daemon) for using this app as normal user. Otherwise app need to be run with root privilages for changing power profiles (and clocks readings sometimes). You can add `username ALL = NOPASSWD: /usr/bin/radeon-profile` to your `/etc/sudoers`. Here is tip for run app as normal user but involves change permissions to system files: http://bit.ly/1dvQMhS
+**[2026-05] Forked to fix issues with latest GPUs and LTS kernel.**
+
+# `xf86-video-ati` and `xf86-video-amdgpu` driver
+
+Install and run [`radeon-profile-daemon`](https://github.com/MaesterZ/radeon-profile-daemon) for using this app as normal user. Otherwise app need to be run with root privilages for changing power profiles (and clocks readings sometimes).
 
 # Functionality
 
@@ -25,59 +30,27 @@ For full functionality:
 * xdriinfo - driver info
 * xrandr - connected displays
 
-
 # Build
 
-```
-git clone https://github.com/marazmista/radeon-profile.git
-cd radeon-profile/radeon-profile
+```bash
+cd radeon-profile/
 qmake
 make 
 ```
 
-The resulting binary is `./target/radeon-profile`
-
-For Ubuntu 17.04, qt5-charts isn't available:
-* Use `qtchooser -l` to list available profiles
-* Use `qmake -qt=[profile from qtchooser]` to specify Qt root or download and install a Qt bundle from https://www.qt.io/download-open-source/#section-2
-* Make a `qt5opt.conf` in `/usr/lib/x86_64-linux-gnu/qtchooser/` containing:
-
-```
-/opt/Qt5.9.1/5.9.1/gcc_64/bin
-/opt/Qt5.9.1/5.9.1
-```
+The resulting binary is `./target/radeon-profile`.
 
 # Installation
-### Ubuntu 
-Available for Ubuntu from PPA [stable](https://launchpad.net/~radeon-profile/+archive/ubuntu/stable) and [git develop](https://launchpad.net/~radeon-profile/+archive/ubuntu/radeon-profile) repository
 
-Add in terminal commands:
+Will copy the binary to `/usr/local/bin/`.
 
-* For git ppa: 
+```bash
+./install.sh
 ```
-sudo add-apt-repository ppa:radeon-profile/radeon-profile
-```
-* For stable ppa: 
-```
-sudo add-apt-repository ppa:radeon-profile/stable
-```
-* Then run commands:
-```
-sudo apt update
-sudo apt install radeon-profile
-```
-### Arch Linux
-* AUR package: https://aur.archlinux.org/packages/radeon-profile-git/
-* System daemon AUR package: https://aur.archlinux.org/packages/radeon-profile-daemon-git/
+
 # Links
 
-* System daemon: https://github.com/marazmista/radeon-profile-daemon
-* Sort of official thread: http://phoronix.com/forums/showthread.php?83602-radeon-profile-tool-for-changing-profiles-and-monitoring-some-GPU-parameters
-* Icon: http://proicons.deviantart.com/art/Graphics-Cards-Icons-H1-Pack-161178339
+* [System daemon](https://github.com/MaesterZ/radeon-profile-daemon)
+* [Forum thread](http://phoronix.com/forums/showthread.php?83602-radeon-profile-tool-for-changing-profiles-and-monitoring-some-GPU-parameters)
+* [Icons](http://proicons.deviantart.com/art/Graphics-Cards-Icons-H1-Pack-161178339)
 
-# Screenshot
-
-Main screen
-![Main screen](https://i.imgur.com/Z880p47.png)
-
-[More screenshots](http://imgur.com/a/DMRr9)
