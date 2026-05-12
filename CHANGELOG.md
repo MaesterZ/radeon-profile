@@ -1,6 +1,8 @@
-# Changelog
+# [2026-05-12]
 
-## Linux 6.18 LTS compatibility fixes (2026-05-12)
+## Removed overclocking features
+
+## Linux 6.18 LTS compatibility fixes
 
 ### `radeon-profile/ioctlHandler.cpp` — Fix render node index (critical)
 
@@ -32,7 +34,7 @@ The same function also had `.split(QString::SkipEmptyParts)` with no separator: 
 enum value `1` was being cast to `QChar('\x01')` and used as the split delimiter
 instead of `'\n'`. Fixed to `.split('\n', QString::SkipEmptyParts)`.
 
-## Build system cleanup (2026-05-12)
+## Build system cleanup
 
 ### `radeon-profile.pro` — Use `CONFIG += c++11` instead of raw `QMAKE_CXXFLAGS`
 

@@ -6,7 +6,7 @@ Simple application to read current clocks of ATi Radeon cards (xf86-video-ati, x
 
 # `xf86-video-ati` and `xf86-video-amdgpu` driver
 
-Install and run [`radeon-profile-daemon`](https://github.com/MaesterZ/radeon-profile-daemon) for using this app as normal user. Otherwise app need to be run with root privilages for changing power profiles (and clocks readings sometimes).
+Install and run [`radeon-profile-daemon`](https://github.com/MaesterZ/radeon-profile-daemon) for using this app as normal user. Otherwise app need to be run with root privileges for changing power profiles (and clocks readings sometimes).
 
 # Functionality
 
