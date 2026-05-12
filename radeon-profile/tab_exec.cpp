@@ -142,7 +142,7 @@ void radeon_profile::on_list_variables_itemClicked(QListWidgetItem *item)
                 // replace if already exists
                 selectedVariableVaules[varIndex] = ui->list_variables->currentItem()->text()+"=\""+input+"\"";
         } else {
-            // hehe, looks weird but check ok status is for, when input was empty, and whether user click ok or cancel, dispaly quesion
+            // hehe, looks weird but check ok status is for, when input was empty, and whether user click ok or cancel, display question
             if ((varIndex != -1) || ok) {
                 if (QMessageBox::question(this, tr("Question"), tr("Remove this item?"), QMessageBox::Yes | QMessageBox::No,QMessageBox::Yes) == QMessageBox::Yes)
                     selectedVariableVaules.removeAt(varIndex);
@@ -264,9 +264,9 @@ void radeon_profile::on_btn_runExecProfile_clicked()
             variables = item->text(ENV_SETTINGS).split(' ',QString::SkipEmptyParts);
 
             for (int i = 0; i < variables.count(); i++) {
-                QString varible = variables[i].split('=')[0],
+                QString variable = variables[i].split('=')[0],
                         value = variables[i].split('=')[1];
-                penv.insert(varible,value);
+                penv.insert(variable,value);
             }
     }
 

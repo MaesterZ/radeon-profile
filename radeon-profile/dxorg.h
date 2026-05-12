@@ -89,8 +89,6 @@ public:
     int getCurrentPowerPlayTableId(const QString &file);
     void setNewValue(const QString &filePath, const QString &newValue);
     void setNewValue(const QString &filePath, const QStringList &newValues);
-    void readOcTableAndRanges();
-    void setOcTable(const QString &tableType, const FVTable &table);
     InitializationConfig getInitConfig();
     void refreshPowerPlayTables();
     PowerProfiles getPowerProfiles(const PowerMethod powerMethod);
@@ -118,7 +116,6 @@ private:
     void sendSharedMemInfoToDaemon();
     QStringList loadPowerPlayTable(const QString &file);
     QString createDaemonSetCmd(const QString &file, const QString &tableIndex);
-    const std::tuple<QMap<QString, FVTable>, QMap<QString, OCRange>> parseOcTable();
 };
 
 

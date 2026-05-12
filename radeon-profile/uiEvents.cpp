@@ -17,9 +17,6 @@
 bool closeFromTrayMenu;
 
 void radeon_profile::setPowerLevelFromCombo() {
-    if (ui->group_freq->isChecked() && ui->combo_pLevel->currentText() != level_manual)
-        ui->group_freq->setChecked(false);
-
     device.setForcePowerLevel(ui->combo_pLevel->currentText());
 }
 
@@ -169,8 +166,6 @@ void radeon_profile::on_cb_alternateRow_clicked(bool checked) {
     ui->list_execProfiles->setAlternatingRowColors(checked);
     ui->list_variables->setAlternatingRowColors(checked);
     ui->list_vaules->setAlternatingRowColors(checked);
-    ui->list_freqStatesCore->setAlternatingRowColors(checked);
-    ui->list_freqStatesMem->setAlternatingRowColors(checked);
 }
 
 void radeon_profile::on_tabs_execOutputs_tabCloseRequested(int index)

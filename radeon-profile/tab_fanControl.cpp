@@ -56,7 +56,7 @@ void radeon_profile::addFanStep(const unsigned int temperature, const unsigned i
         while (i < ui->list_fanSteps->topLevelItemCount() && ui->list_fanSteps->topLevelItem(i)->text(0).toUInt() < temperature)
             ++i;
 
-        // check previous and next items values before insering new
+        // check previous and next items values before inserting new
         if (ui->list_fanSteps->topLevelItem(i - 1) != nullptr && ui->list_fanSteps->topLevelItem(i - 1)->text(1).toUInt() > fanSpeed)
             speedString = ui->list_fanSteps->topLevelItem(i - 1)->text(1);
 

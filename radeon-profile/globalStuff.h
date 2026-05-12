@@ -34,13 +34,6 @@
 #define pwm_manual '1'
 #define pwm_auto '2'
 
-#define OD_RANGE "OD_RANGE"
-#define OD_MCLK "OD_MCLK"
-#define OD_SCLK "OD_SCLK"
-#define SCLK "SCLK"
-#define MCLK "MCLK"
-#define VDDC "VDDC"
-#define OD_VDDC_CURVE "OD_VDDC_CURVE"
 
 #define logDateFormat "yyyy-MM-dd_hh-mm-ss"
 
@@ -156,28 +149,6 @@ struct RPValue {
     }
 };
 
-struct FreqVoltPair {
-    unsigned frequency, voltage;
-
-    FreqVoltPair() { }
-
-    FreqVoltPair(unsigned freq, unsigned volt) {
-        frequency = freq;
-        voltage = volt;
-    }
-};
-
-struct OCRange {
-    unsigned min, max;
-
-    OCRange() { }
-
-    OCRange(unsigned _min, unsigned _max) {
-        min = _min;
-        max = _max;
-    }
-};
-
 struct PowerProfileDefinition {
     QString name;
     unsigned id;
@@ -193,16 +164,8 @@ struct PowerProfileDefinition {
 };
 
 typedef QMap<ValueID, RPValue> GPUDataContainer;
-typedef QMap<unsigned, FreqVoltPair> FVTable;
-typedef QMap<QString, FVTable> MapFVTables;
-typedef QMap<QString, OCRange> MapOCRanges;
 typedef QMap<int, unsigned int> FanProfileSteps;
 typedef QList<PowerProfileDefinition> PowerProfiles;
-
-struct OCProfile {
-    unsigned powerCap;
-    MapFVTables tables;
-};
 
 // structure which holds what can be display on ui and on its base
 // we enable ui elements
@@ -210,13 +173,8 @@ struct DriverFeatures {
     bool
     isChangeProfileAvailable = false,
     isFanControlAvailable = false,
-    isPercentCoreOcAvailable = false,
-    isPercentMemOcAvailable = false,
-    isDpmCoreFreqTableAvailable = false,
     isDpmMemFreqTableAvailable = false,
     isPowerCapAvailable = false,
-    isOcTableAvailable = false,
-    isVDDCCurveAvailable = false,
     isDpmStateAvailable = false,
     isPowerProfileModesAvailable = false;
 
@@ -225,12 +183,8 @@ struct DriverFeatures {
     TemperatureSensor currentTemperatureSensor = TemperatureSensor::TS_UNKNOWN;
     GPUSysInfo sysInfo;
 
-    // base on files  pp_dpm_sclk and  pp_dpm_mclk
+    // based on pp_dpm_sclk and pp_dpm_mclk
     QStringList sclkTable, mclkTable;
-
-    // base on file pp_od_clk_voltage
-    MapFVTables currentStatesTables;
-    MapOCRanges ocRages;
 
     // based on pp_power_profile_mode or power_dpm_state or power_profile
     PowerProfiles powerProfiles;
@@ -264,12 +218,9 @@ struct DeviceSysFs {
     power_profile,
     power_dpm_state,
     power_dpm_force_performance_level,
-    pp_sclk_od,
-    pp_mclk_od,
     pp_dpm_sclk,
     pp_dpm_mclk,
     gpu_busy_percent,
-    pp_od_clk_voltage,
     pp_power_profile_mode;
 
     DeviceSysFs() { }
@@ -279,12 +230,9 @@ struct DeviceSysFs {
         power_profile = devicePath + "power_profile";
         power_dpm_state = devicePath + "power_dpm_state";
         power_dpm_force_performance_level = devicePath + "power_dpm_force_performance_level";
-        pp_sclk_od = devicePath + "pp_sclk_od";
-        pp_mclk_od = devicePath + "pp_mclk_od";
         pp_dpm_sclk = devicePath + "pp_dpm_sclk";
         pp_dpm_mclk = devicePath + "pp_dpm_mclk";
         gpu_busy_percent = devicePath + "gpu_busy_percent";
-        pp_od_clk_voltage = devicePath + "pp_od_clk_voltage";
         pp_power_profile_mode = devicePath + "pp_power_profile_mode";
 
         if (!checkFileCorrectness(power_method))
@@ -299,12 +247,6 @@ struct DeviceSysFs {
         if (!checkFileCorrectness(power_dpm_force_performance_level))
             power_dpm_force_performance_level = "";
 
-        if (!checkFileCorrectness(pp_sclk_od, true))
-            pp_sclk_od = "";
-
-        if (!checkFileCorrectness(pp_mclk_od, true))
-            pp_mclk_od = "";
-
         if (!checkFileCorrectness(pp_dpm_sclk))
             pp_dpm_sclk = "";
 
@@ -313,9 +255,6 @@ struct DeviceSysFs {
 
         if (!checkFileCorrectness(gpu_busy_percent, true))
             gpu_busy_percent = "";
-
-        if (!checkFileCorrectness(pp_od_clk_voltage))
-            pp_od_clk_voltage = "";
 
         if (!checkFileCorrectness(pp_power_profile_mode))
             pp_power_profile_mode = "";

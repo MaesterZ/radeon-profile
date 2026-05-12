@@ -47,18 +47,6 @@ class radeon_profile : public QMainWindow
         LOG_FILE_DATE_APPEND
     };
 
-    enum OcSeriesType {
-        CORE_FREQUENCY,
-        CORE_VOLTAGE,
-        MEM_FREQUENCY,
-        MEM_VOLTAGE
-    };
-
-    enum AxisType {
-        FREQUENCY,
-        VOLTAGE
-    };
-
 public:
     explicit radeon_profile(QWidget *parent = 0);
     ~radeon_profile();
@@ -103,7 +91,6 @@ private slots:
     void on_btn_addFanStep_clicked();
     void on_btn_removeFanStep_clicked();
     void on_list_fanSteps_itemDoubleClicked(QTreeWidgetItem *item, int column);
-    void on_btn_applyStatesAndOc_clicked();
     void on_btn_applyFanProfile_clicked();
     void on_btn_removeFanProfile_clicked();
     void on_btn_saveFanProfile_clicked();
@@ -124,24 +111,10 @@ private slots:
     void on_btn_general_clicked();
     void on_btn_configureTopbar_clicked();
     void createFanProfileListaAndGraph(const QString &profile);
-    void on_list_coreStates_itemDoubleClicked(QTreeWidgetItem *item, int column);
-    void on_list_memStates_itemDoubleClicked(QTreeWidgetItem *item, int column);
-    void on_btn_applyOcTable_clicked();
-    void on_btn_resetOcTable_clicked();
     void setEnabledChangeEvent() { enableChangeEvent = true; };
-    void on_btn_setOcRanges_clicked();
-    void on_btn_saveOcProfile_clicked();
-    void on_btn_saveOcProfileAs_clicked();
-    void createOcProfileListsAndGraph(const QString &arg1);
-    void on_btn_removeOcProfile_clicked();
-    void powerCapValueChange(int arg1);
-    void percentOverclockToggled(bool toggle);
-    void ocProfilesMenuActionClicked(QAction* action);
     void daemonConnected();
     void daemonDisconnected();
     void on_btn_connConfirmMethodInfo_clicked();
-    void frequencyControlToggled(bool toogle);
-    void applyFrequencyTables();
     void setPowerProfile(int mode);
 
 private:
@@ -159,7 +132,6 @@ private:
     QList<ExecBin*> execsRunning;
     FanProfileSteps currentFanProfile;
     QMap<QString, FanProfileSteps> fanProfiles;
-    QMap<QString, OCProfile> ocProfiles;
     QMap<QString, RPEvent> events;
     QMap<QString, unsigned int> pmStats;
     unsigned int counter_ticks, counter_statsTick;
@@ -169,11 +141,9 @@ private:
     CurrentStateInfo *savedState;
     PlotManager plotManager;
     TopbarManager topbarManager;
-    QChartView *chartView_fan, *chartView_oc;
+    QChartView *chartView_fan;
     QList<TopbarItem*> topBarItems;
     QList<ValueID> keysInCurrentGpuList;
-    QString enabledFrequencyStatesCore, enabledFrequencyStatesMem;
-
     Ui::radeon_profile *ui;
     void setupTrayIcon();
     void refreshTooltip();
@@ -188,7 +158,6 @@ private:
     void setupUiEnabledFeatures(const DriverFeatures &features, const GPUDataContainer &data);
     void loadVariables();
     void updateExecLogs();
-    void createOcProfileGraph();
     void loadFanProfiles();
     int askNumber(const int value, const int min, const int max, const QString label);
     void makeFanProfilePlot();
@@ -228,21 +197,11 @@ private:
     void showWindow();
     void addFanStep (const unsigned int temperature, const unsigned int fanSpeed);
     QMenu* createGeneralMenu();
-    void applyOc();
     void setupPlot(PlotDefinitionSchema &pds);
     QString createCurrentMinMaxString(const ValueID idCurrent, const ValueID idMin, const ValueID idMax);
     QString createCurrentMinMaxString(const QString &current, const QString &min,  const QString &max);
     void createFanProfileGraph();
-    void createOcGraphSeriesFromList(const QTreeWidget *list, QLineSeries *seriesClocks, QLineSeries *seriesVoltages);
-    void adjustState(QTreeWidgetItem *item, const OCRange &frequencyRange, const OCRange &voltageRange);
-    void saveOcProfiles(QXmlStreamWriter &xml);
-    void loadOcProfile(QXmlStreamReader &xml);
-    OCProfile createOcProfile();
-    void setCurrentOcProfile(const QString &name);
-    void loadListFromOcProfile(const FVTable &table, QTreeWidget *list);
-    void createOcProfilesMenu(const bool rebuildMode = false);
     int findCurrentMenuIndex(QMenu *menu, const QString &name);
-    void loadDefaultOcTables(const DriverFeatures &features);
     void setupDeviceDependantUiElements();
     void enableUiControls(bool enable);
     void restoreFanState();
@@ -250,8 +209,6 @@ private:
     void initializeDevice();
     void configureDaemonPostDeviceInit();
     void configureDaemonPreDeviceInit();
-    void loadFrequencyStatesTables();
-    void updateFrequencyStatesTables();
     void createPowerProfileControlButtons(const PowerProfiles& modes);
 
 };

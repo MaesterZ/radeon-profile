@@ -50,16 +50,6 @@ void radeon_profile::saveConfig() {
         settings.setValue("fanMode",ui->stack_fanModes->currentIndex());
         settings.setValue("fanProfileName",ui->l_currentFanProfile->text());
 
-        settings.setValue("restorePercentOverclock", ui->cb_restorePercentOc->isChecked());
-        settings.setValue("overclockValue", ui->slider_ocSclk->value());
-        settings.setValue("overclockMemValue", ui->slider_ocMclk->value());
-        settings.setValue("restoreFrequencyStates", ui->cb_restoreFrequencyStates->isChecked());
-        settings.setValue("enabledFrequencyStates", enabledFrequencyStatesCore);
-        settings.setValue("enabledFrequencyStatesMem", enabledFrequencyStatesMem);
-
-        settings.setValue("ocProfileName", ui->l_currentOcProfile->text());
-        settings.setValue("restoreOcProfile", ui->cb_restoreOcProfile->isChecked());
-
         settings.setValue("execDbcAction",ui->combo_execDbcAction->currentIndex());
         settings.setValue("appendSysEnv",ui->cb_execSysEnv->isChecked());
         settings.setValue("eventsTracking", ui->cb_eventsTracking->isChecked());
@@ -80,8 +70,6 @@ void radeon_profile::saveConfig() {
     saveFanProfiles(xml);
     savePlotSchemas(xml);
     saveTopbarItemsSchemas(xml);
-    saveOcProfiles(xml);
-
     xml.writeEndElement();
     xml.writeEndDocument();
 
@@ -153,43 +141,6 @@ void radeon_profile::saveFanProfiles(QXmlStreamWriter &xml) {
         }
         xml.writeEndElement();
     }
-    xml.writeEndElement();
-}
-
-void radeon_profile::saveOcProfiles(QXmlStreamWriter &xml) {
-    xml.writeStartElement("OcProfiles");
-
-    for (QString k : ocProfiles.keys()) {
-        xml.writeStartElement("ocProfile");
-        xml.writeAttribute("name", k);
-
-        auto oct = ocProfiles.value(k);
-        xml.writeAttribute("powerCap", QString::number(oct.powerCap));
-
-        for (auto tk : oct.tables.keys()) {
-            const FVTable &fvt = oct.tables.value(tk);
-
-            xml.writeStartElement("table");
-            xml.writeAttribute("tableName", tk);
-
-            for (auto fvtk : fvt.keys()) {
-                const FreqVoltPair &fvp = fvt.value(fvtk);
-
-                xml.writeStartElement("state");
-                xml.writeAttribute("enabled", QString::number(true));
-                xml.writeAttribute("stateNumber", QString::number(fvtk));
-                xml.writeAttribute("frequency", QString::number(fvp.frequency));
-                xml.writeAttribute("voltage", QString::number(fvp.voltage));
-
-                xml.writeEndElement();
-            }
-
-            xml.writeEndElement();
-        }
-
-        xml.writeEndElement();
-    }
-
     xml.writeEndElement();
 }
 
@@ -282,14 +233,6 @@ void radeon_profile::loadConfig() {
     ui->cb_execSysEnv->setChecked(settings.value("appendSysEnv",true).toBool());
     ui->cb_eventsTracking->setChecked(settings.value("eventsTracking", false).toBool());
 
-    ui->cb_restorePercentOc->setChecked(settings.value("restorePercentOverclock", false).toBool());
-    ui->group_oc->setChecked(ui->cb_restorePercentOc->isChecked());
-    ui->cb_restoreFrequencyStates->setChecked(settings.value("restoreFrequencyStates", false).toBool());
-    enabledFrequencyStatesCore = settings.value("enabledFrequencyStates", "0 1 2 3 4 5 6 7").toString();
-    enabledFrequencyStatesMem = settings.value("enabledFrequencyStatesMem", "0 1 2 3").toString();
-    ui->group_freq->setChecked(ui->cb_restoreFrequencyStates->isChecked());
-    ui->slider_ocSclk->setValue(settings.value("overclockValue",0).toInt());
-    ui->slider_ocMclk->setValue(settings.value("overclockMemValue",0).toInt());
     ui->cb_daemonData->setChecked(settings.value("daemonData", false).toBool());
     ui->combo_connConfirmMethod->setCurrentIndex(settings.value("connConfirmMethod", 1).toInt());
     ui->spin_hysteresis->setValue(settings.value("temperatureHysteresis", 0).toInt());
@@ -299,10 +242,6 @@ void radeon_profile::loadConfig() {
 
     refreshWhenHidden->setCheckable(true);
     refreshWhenHidden->setChecked(settings.value("refreshWhenHidden", true).toBool());
-
-    ui->cb_restoreOcProfile->setChecked(settings.value("restoreOcProfile", false).toBool());
-    if (ui->cb_restoreOcProfile->isChecked())
-        ui->l_currentOcProfile->setText(settings.value("ocProfileName", "default").toString());
 
     if (!ui->cb_daemonData->isChecked())
         ui->cb_daemonAutoRefresh->setEnabled(false);
@@ -352,11 +291,6 @@ void radeon_profile::loadConfig() {
 
                 if (xml.name().toString() == "fanProfile") {
                     loadFanProfile(xml);
-                    continue;
-                }
-
-                if (xml.name().toString() == "ocProfile") {
-                    loadOcProfile(xml);
                     continue;
                 }
 
@@ -489,34 +423,3 @@ void radeon_profile::loadFanProfile(QXmlStreamReader &xml) {
     }
 }
 
-void radeon_profile::loadOcProfile(QXmlStreamReader &xml) {
-    const QString name = xml.attributes().value("name").toString();
-
-    OCProfile ocp;
-    ocp.powerCap = xml.attributes().value("powerCap").toInt();
-
-
-    FVTable table;
-    QString tableName;
-    while(xml.readNext()) {
-        if (xml.name().toString() == "table" && !xml.attributes().value("tableName").isEmpty())
-            tableName = xml.attributes().value("tableName").toString();
-
-        if (xml.name().toString() == "state" && !xml.attributes().value("stateNumber").isEmpty()) {
-            table.insert(xml.attributes().value("stateNumber").toUInt(),
-                         FreqVoltPair(xml.attributes().value("frequency").toUInt(),
-                                      xml.attributes().value("voltage").toUInt()));
-        }
-
-        if (xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == "table") {
-            ocp.tables.insert(tableName, table);
-            table.clear();
-            tableName = "";
-        }
-
-        if (xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == "ocProfile") {
-            ocProfiles.insert(name, ocp);
-            return;
-        }
-    }
-}

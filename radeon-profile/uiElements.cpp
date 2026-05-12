@@ -136,26 +136,6 @@ void radeon_profile::createFanProfilesMenu(const bool rebuildMode) {
     ui->btn_fanControl->setMenu(menu_fanProfiles);
 }
 
-void radeon_profile::createOcProfilesMenu(const bool rebuildMode) {
-    if (rebuildMode && ui->btn_ocProfileControl->menu() != nullptr)
-        delete ui->btn_ocProfileControl->menu();
-
-    auto menu = new QMenu(this);
-    connect(menu, SIGNAL(triggered(QAction*)), this, SLOT(ocProfilesMenuActionClicked(QAction*)));
-
-    auto ag = new QActionGroup(menu);
-
-    for (const auto &p : ocProfiles.keys()) {
-        auto a = new QAction(menu);
-        a->setText(p);
-        a->setCheckable(true);
-        a->setActionGroup(ag);
-        menu->addAction(a);
-    }
-
-    ui->btn_ocProfileControl->setMenu(menu);
-}
-
 void radeon_profile::fillConnectors(){
     ui->list_connectors->clear();
     ui->list_connectors->addTopLevelItems(device.getCardConnectors());
@@ -266,47 +246,3 @@ void radeon_profile::createFanProfileGraph()
     ui->verticalLayout_22->addWidget(chartView_fan);
 }
 
-void radeon_profile::createOcProfileGraph() {
-    chartView_oc = new QChartView(this);
-    QChart *chart_oc = new QChart();
-    chartView_oc->setRenderHint(QPainter::Antialiasing);
-    chartView_oc->setChart(chart_oc);
-
-    setupChart(chart_oc, true);
-
-    auto axis_state = new QValueAxis(chart_oc);
-    auto axis_frequency = new QValueAxis(chart_oc);
-    auto axis_volts = new QValueAxis(chart_oc);
-
-    chart_oc->addAxis(axis_state,Qt::AlignBottom);
-    chart_oc->addAxis(axis_frequency, Qt::AlignLeft);
-    chart_oc->addAxis(axis_volts, Qt::AlignRight);
-
-    setupAxis(axis_state, Qt::white, tr("State"));
-    setupAxis(axis_frequency, Qt::white, tr("Frequency [MHz]"));
-    setupAxis(axis_volts, Qt::white, tr("Voltage [mV]"));
-
-
-    // keep the order as in OcSeriesType enum //
-    auto series_ocClockFreq = new QLineSeries(chart_oc);
-    auto series_ocCoreVolt = new QLineSeries(chart_oc);
-    chart_oc->addSeries(series_ocClockFreq);
-    chart_oc->addSeries(series_ocCoreVolt);
-
-    setupSeries(series_ocClockFreq, Qt::yellow, tr("Core frequency [MHz]"), axis_state, axis_frequency);
-    setupSeries(series_ocCoreVolt, Qt::green, tr("Core voltage [mV]"), axis_state, axis_volts);
-
-    if (!device.getDriverFeatures().isVDDCCurveAvailable) {
-        auto series_ocMemFreq = new QLineSeries(chart_oc);
-        auto series_ocMemVolt = new QLineSeries(chart_oc);
-        chart_oc->addSeries(series_ocMemFreq);
-        chart_oc->addSeries(series_ocMemVolt);
-        setupSeries(series_ocMemFreq, Qt::blue, tr("Memory frequency [MHz]"), axis_state, axis_frequency);
-        setupSeries(series_ocMemVolt, Qt::cyan, tr("Memory voltage [mV]"), axis_state, axis_volts);
-    }
-
-    ui->verticalLayout_10->addWidget(chartView_oc);
-
-    ui->list_coreStates->resizeColumnToContents(0);
-    ui->list_memStates->resizeColumnToContents(0);
-}

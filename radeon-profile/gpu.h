@@ -2,7 +2,7 @@
 
 // in here, we have class which represent graphic adapter in program //
 // It chooses driver and communicate with proper class for selected driver //
-// and retuns result to gui //
+// and returns result to gui //
 
 #ifndef GPU_H
 #define GPU_H
@@ -51,26 +51,16 @@ public:
     void setForcePowerLevel(const QString &newForcePowerLevel);
     void setPwmManualControl(bool manual);
     void setPwmValue(unsigned int value);
-    void setOcTableValue(const QString &type, const QString &tableKey, int powerState, const FreqVoltPair powerStateValues);
-    void sendOcTableCommand(const QString cmd);
-    void setOcRanges(const QString &type, const QString &tableKey, int powerState, int rangeValue);
-    void setPowerCap(const unsigned value);
-    void setManualFrequencyControlStates(const QString &file, const QString &states);
-    void resetFrequencyControlStates();
     void refreshPowerPlayTables();
 
     void detectCards();
     bool initialize(const dXorg::InitializationConfig &config);
-    void setOverclockValue(const QString &file, int value);
-    void resetOverclock();
     const DriverFeatures& getDriverFeatures() const;
     const GPUConstParams& getGpuConstParams() const;
     const DeviceFilePaths& getDriverFiles() const;
     void finalize();
     bool isInitialized();
     int getCurrentPowerPlayTableId(const QString &file);
-    void readOcTableAndRanges();
-    void setOcTable(const QString &tableType, const FVTable &table);
 
 private slots:
     void handleGpuUsageResult() {

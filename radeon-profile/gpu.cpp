@@ -301,33 +301,8 @@ void gpu::finalize() {
     if (gpuData.contains(ValueID::FAN_SPEED_PERCENT))
         setPwmManualControl(false);
 
-    if (getDriverFeatures().isPercentCoreOcAvailable)
-        resetOverclock();
-
     if (futureGpuUsage.isRunning())
         futureGpuUsage.waitForFinished();
-}
-
-void gpu::setOverclockValue(const QString &file, const int value) {
-    driverHandler->setNewValue(file, QString::number(value));
-}
-
-void gpu::resetOverclock() {
-    driverHandler->setNewValue(getDriverFiles().sysFs.pp_sclk_od, "0");
-    driverHandler->setNewValue(getDriverFiles().sysFs.pp_mclk_od, "0");
-}
-
-void gpu::resetFrequencyControlStates() {
-    QString statesCore, statesMem;
-
-    for (int i = 0; i < driverHandler->features.sclkTable.count(); ++i)
-        statesCore.append(QString::number(i) + " ");
-
-    for (int i = 0; i < driverHandler->features.mclkTable.count(); ++i)
-        statesMem.append(QString::number(i) + " ");
-
-    setManualFrequencyControlStates(getDriverFiles().sysFs.pp_dpm_sclk, statesCore);
-    setManualFrequencyControlStates(getDriverFiles().sysFs.pp_dpm_sclk, statesMem);
 }
 
 int gpu::getCurrentPowerPlayTableId(const QString &file) {
@@ -343,51 +318,9 @@ void gpu::getPowerCapSelected() {
         gpuData[ValueID::POWER_CAP_SELECTED].setValue(driverHandler->getPowerCapSelected());
 }
 
-void gpu::setManualFrequencyControlStates(const QString &file, const QString &states) {
-    driverHandler->setNewValue(file, states);
-}
-
 void gpu::getPowerCapAverage() {
     if (getDriverFeatures().isPowerCapAvailable)
         gpuData[ValueID::POWER_CAP_AVERAGE].setValue(driverHandler->getPowerCapAverage());
-}
-
-void gpu::setPowerCap(const unsigned int value) {
-    driverHandler->setNewValue(getDriverFiles().hwmonAttributes.power1_cap, QString::number(value * MICROWATT_DIVIDER));
-}
-
-void gpu::setOcTableValue(const QString &type, const QString &tableKey, int powerState, const FreqVoltPair powerStateValues) {
-    driverHandler->features.currentStatesTables[tableKey].insert(powerState, powerStateValues);
-
-    driverHandler->setNewValue(getDriverFiles().sysFs.pp_od_clk_voltage,
-                               type + " " + QString::number(powerState) + " " +
-                               QString::number(powerStateValues.frequency) + " " +
-                               QString::number(powerStateValues.voltage));
-}
-
-void gpu::sendOcTableCommand(const QString cmd) {
-    driverHandler->setNewValue(getDriverFiles().sysFs.pp_od_clk_voltage, cmd);
-}
-
-void gpu::setOcRanges(const QString &type, const QString &tableKey, int powerState, int rangeValue) {
-    OCRange &ocr = driverHandler->features.ocRages[tableKey];
-
-    if (powerState == 0)
-        ocr.min = rangeValue;
-    else
-        ocr.max = rangeValue;
-
-    sendOcTableCommand(type + " " + QString::number(powerState) + " " + QString::number(rangeValue));
-}
-
-void gpu::readOcTableAndRanges() {
-    driverHandler->readOcTableAndRanges();
-}
-
-void gpu::setOcTable(const QString &tableType, const FVTable &table) {
-    driverHandler->setOcTable(tableType, table);
-
-    readOcTableAndRanges();
 }
 
 // Function that returns the human readable output of a property value
@@ -888,7 +821,7 @@ QList<QTreeWidgetItem *> gpu::getCardConnectors() const {
                                                            propertyDataType,
                                                            (Atom*)&propertyRawData[i]);
 
-                    // Get the property informations (allows to get ranges)
+                    // Get the property information (allows to get ranges)
                     XRRPropertyInfo *propertyInfo = XRRQueryOutputProperty(display,
                                                                            screenResources->outputs[outputIndex],
                                                                            properties[propertyIndex]);

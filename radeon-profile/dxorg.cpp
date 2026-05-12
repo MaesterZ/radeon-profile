@@ -29,7 +29,7 @@ void dXorg::configure() {
     }
 
     if (radeon_profile::dcomm.isConnected() && initConfig.daemonData) {
-        qDebug() << "Confguring shared memory for daemon";
+        qDebug() << "Configuring shared memory for daemon";
         setupSharedMem();
         sendSharedMemInfoToDaemon();
 
@@ -142,7 +142,7 @@ void dXorg::figureOutGpuDataFilePaths(const QString &gpuName) {
     qDebug() << "hwmon path: " << hwmonDevicePath;
 }
 
-// method for gather info about clocks from deamon or from debugfs if root
+// method for gather info about clocks from daemon or from debugfs if root
 QString dXorg::getClocksRawData() {
     QString data;
 
@@ -647,22 +647,11 @@ void dXorg::figureOutDriverFeatures() {
 
     features.isFanControlAvailable = !driverFiles.hwmonAttributes.pwm1.isEmpty();
 
-    features.isPercentCoreOcAvailable = !driverFiles.sysFs.pp_sclk_od.isEmpty();
-    features.isPercentMemOcAvailable = !driverFiles.sysFs.pp_mclk_od.isEmpty();
-
     refreshPowerPlayTables();
-    features.isDpmCoreFreqTableAvailable = features.sclkTable.count() > 0;
     features.isDpmMemFreqTableAvailable = features.mclkTable.count() > 0;
 
     features.isPowerCapAvailable = !driverFiles.hwmonAttributes.power1_cap.isEmpty();
 
-    if (!driverFiles.sysFs.pp_od_clk_voltage.isEmpty()) {
-        features.isOcTableAvailable = true;
-
-        readOcTableAndRanges();
-
-        features.isVDDCCurveAvailable = features.currentStatesTables.contains(OD_VDDC_CURVE);
-    }
 }
 
 void dXorg::refreshPowerPlayTables()
@@ -777,91 +766,6 @@ int dXorg::getPowerCapSelected() const {
 
 int dXorg::getPowerCapAverage() const {
     return getValueFromSysFsFile(driverFiles.hwmonAttributes.power1_average).toInt() / MICROWATT_DIVIDER;
-}
-
-const std::tuple<MapFVTables, MapOCRanges> dXorg::parseOcTable() {
-    MapFVTables tables;
-    MapOCRanges ocRanges;
-
-    QStringList sl = getValueFromSysFsFile(driverFiles.sysFs.pp_od_clk_voltage).remove(' ')
-            .replace(QRegularExpression(":|MHz|mV", QRegularExpression::CaseInsensitiveOption), "|").split('\n');
-
-    // OD_VDDC_CURVE only in Vega20+
-    bool vega20Mode = sl.contains(QString(OD_VDDC_CURVE).append('|'));
-
-    for (auto i = 0; i < sl.length(); ++i) {
-
-        if (vega20Mode) {
-            if (sl.at(i).contains(OD_SCLK)) {
-                QStringList stateMin = sl[++i].split("|", QString::SkipEmptyParts);
-                QStringList stateMax = sl[++i].split("|", QString::SkipEmptyParts);
-                ocRanges.insert(OD_SCLK, OCRange(stateMin[1].toUInt(), stateMax[1].toUInt()));
-                continue;
-            }
-
-            if (sl.at(i).contains(OD_MCLK)) {
-                QStringList stateMax = sl[++i].split("|", QString::SkipEmptyParts);
-                ocRanges.insert(OD_MCLK, OCRange(0, stateMax[1].toUInt()));
-                continue;
-            }
-        }
-
-        QString tableKey;
-        for (; i < sl.length(); ++i) {
-            auto tableItems = sl[i].split("|", QString::SkipEmptyParts);
-
-            if (tableItems.length() == 1) {
-
-                if (tableItems[0] == OD_RANGE) {
-                    for (++i; i < sl.length(); ++i) {
-
-                        auto state = sl[i].split("|", QString::SkipEmptyParts);
-                        if (state.length() == 1)
-                            break;
-
-                        ocRanges.insert(state[0], OCRange(state[1].toUInt(), state[2].toUInt()));
-                    }
-                } else
-                    tableKey = tableItems[0]; // next table key
-
-            } else {
-
-                FVTable fvt;
-                for (; i < sl.length(); ++i) {
-                    auto state = sl[i].split("|", QString::SkipEmptyParts);
-
-                    if (state.length() == 1) {
-                        --i; // go back to next table start
-                        break;
-                    }
-
-                    fvt.insert(state[0].toUInt(), FreqVoltPair(state[1].toUInt(), state[2].toUInt()));
-                }
-
-                tables.insert(tableKey, fvt);
-            }
-        }
-    }
-
-    return std::make_tuple(tables, ocRanges);
-}
-
-void dXorg::readOcTableAndRanges() {
-    auto ocTable = parseOcTable();
-
-    features.currentStatesTables = std::get<0>(ocTable);
-    features.ocRages = std::get<1>(ocTable);
-}
-
-void dXorg::setOcTable(const QString &tableType, const FVTable &table) {
-    QString ocTableValues;
-
-    for (const auto &s : table.keys()) {
-        const FreqVoltPair &fvt = table.value(s);
-        ocTableValues.append(tableType + " "+ QString::number(s) + " " + QString::number(fvt.frequency) + " " + QString::number(fvt.voltage));
-    }
-
-    setNewValue(driverFiles.sysFs.pp_od_clk_voltage, ocTableValues);
 }
 
 PowerProfiles dXorg::getPowerProfiles(const PowerMethod powerMethod) {

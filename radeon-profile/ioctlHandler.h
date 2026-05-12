@@ -6,7 +6,7 @@
 
 
 /**
- * @brief The ioctlHandler class is an interface to the kernel IOCTL system that allows to retrieve informations from the driver.
+ * @brief The ioctlHandler class is an interface to the kernel IOCTL system that allows to retrieve information from the driver.
  */
 class ioctlHandler
 {

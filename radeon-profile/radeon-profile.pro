@@ -32,7 +32,6 @@ SOURCES += main.cpp\
     tab_plots.cpp \
     tab_fanControl.cpp \
     tab_exec.cpp \
-    tab_overclock.cpp \
     dialogs/dialog_sliders.cpp \
     dialogs/dialog_plotsconfiguration.cpp
 

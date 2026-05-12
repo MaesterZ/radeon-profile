@@ -139,16 +139,11 @@ void radeon_profile::configureDaemonPostDeviceInit() {
 
 void radeon_profile::connectSignals()
 {
-    // fix for warrning: QMetaObject::connectSlotsByName: No matching signal for...
+    // fix for warning: QMetaObject::connectSlotsByName: No matching signal for...
     connect(ui->combo_gpus,SIGNAL(currentIndexChanged(QString)),this,SLOT(gpuChanged()));
     connect(ui->combo_pLevel,SIGNAL(currentIndexChanged(int)),this,SLOT(setPowerLevelFromCombo()));
     connect(timer,SIGNAL(timeout()),this,SLOT(mainTimerEvent()));
     connect(ui->combo_fanProfiles, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(createFanProfileListaAndGraph(const QString&)));
-    connect(ui->combo_ocProfiles, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(createOcProfileListsAndGraph(const QString&)));
-    connect(ui->slider_powerCap, SIGNAL(valueChanged(int)), this, SLOT(powerCapValueChange(int)));
-    connect(ui->spin_powerCap, SIGNAL(valueChanged(int)), this, SLOT(powerCapValueChange(int)));
-    connect(ui->group_oc, SIGNAL(toggled(bool)), this, SLOT(percentOverclockToggled(bool)));
-    connect(ui->group_freq, SIGNAL(toggled(bool)), this, SLOT(frequencyControlToggled(bool)));
     connect(&group_profileControlButtons, SIGNAL(buttonClicked(int)), this, SLOT(setPowerProfile(int)));
 }
 
@@ -214,7 +209,7 @@ void radeon_profile::setupUiEnabledFeatures(const DriverFeatures &features, cons
     // SETUP FAN CONTROL
     if (features.isFanControlAvailable && features.isChangeProfileAvailable) {
         qDebug() << "Fan control available";
-        ui->tw_main->setTabEnabled(3,true);
+        ui->tw_main->setTabEnabled(2,true);
         ui->l_fanProfileUnsavedIndicator->setVisible(false);
 
         // set pwm buttons in group
@@ -245,89 +240,11 @@ void radeon_profile::setupUiEnabledFeatures(const DriverFeatures &features, cons
         }
     } else {
         qDebug() << "Fan control not available";
-        ui->tw_main->setTabEnabled(3,false);
+        ui->tw_main->setTabEnabled(2,false);
         ui->btn_fanControl->setVisible(false);
         ui->group_cfgFan->setEnabled(false);
     }
 
-    // SETUP OC
-    ui->tw_main->setTabEnabled(2, false);
-    ui->btn_ocProfileControl->setVisible(false);
-
-    if (features.isChangeProfileAvailable && (features.isOcTableAvailable || features.isPercentCoreOcAvailable || features.isDpmCoreFreqTableAvailable)) {
-        ui->tw_main->setTabEnabled(2, true);
-        ui->tw_overclock->setEnabled(true);
-        ui->tw_overclock->setTabEnabled(0, false);
-        ui->tw_overclock->setTabEnabled(1, false);
-
-        if (features.isPercentCoreOcAvailable) {
-            ui->group_oc->setEnabled(true);
-            ui->tw_overclock->setTabEnabled(0, true);
-            ui->btn_applyStatesAndOc->setEnabled(true);
-
-            if (ui->cb_restorePercentOc->isChecked())
-                on_btn_applyStatesAndOc_clicked();
-        }
-
-        if (features.isDpmCoreFreqTableAvailable) {
-            ui->group_freq->setEnabled(true);
-            ui->tw_overclock->setTabEnabled(0, true);
-            ui->btn_applyStatesAndOc->setEnabled(true);
-
-            loadFrequencyStatesTables();
-
-            if (ui->cb_restoreFrequencyStates->isChecked())
-                on_btn_applyStatesAndOc_clicked();
-        }
-
-        if (features.isOcTableAvailable) {
-            ui->tw_overclock->setTabEnabled(1, true);
-            ui->btn_ocProfileControl->setVisible(true);
-            createOcProfileGraph();
-
-            if (features.isPowerCapAvailable) {
-                ui->group_powerCap->setEnabled(true);
-
-                ui->slider_powerCap->setRange(device.getGpuConstParams().power1_cap_min, device.getGpuConstParams().power1_cap_max);
-                ui->spin_powerCap->setRange(device.getGpuConstParams().power1_cap_min, device.getGpuConstParams().power1_cap_max);
-                ui->slider_powerCap->setValue(device.gpuData[ValueID::POWER_CAP_SELECTED].value);
-            }
-
-            if (ocProfiles.isEmpty())
-                loadDefaultOcTables(features);
-
-            else if ((features.isVDDCCurveAvailable && !ocProfiles.first().tables.keys().contains(OD_VDDC_CURVE))
-                     || (!features.isVDDCCurveAvailable && ocProfiles.first().tables.keys().contains(OD_VDDC_CURVE))) {
-
-                // if the profiles in config are incompatible with system (user changed card etc), clear and load default
-                ocProfiles.clear();
-                loadDefaultOcTables(features);
-            }
-
-            for (const auto &k : ocProfiles.keys())
-                ui->combo_ocProfiles->addItem(k);
-
-            createOcProfileListsAndGraph(ui->combo_ocProfiles->currentText());
-            createOcProfilesMenu(true);
-            ui->btn_ocProfileControl->menu()->actions()[findCurrentMenuIndex(ui->btn_ocProfileControl->menu(), "default")]->setChecked(true);
-
-            ui->tw_overclock->setTabEnabled(1, true);
-            ui->btn_applyStatesAndOc->setEnabled(true);
-
-            if (features.isVDDCCurveAvailable) {
-                ui->l_ocTableTitle->setText(tr("VDDC curve"));
-                ui->btn_setOcRanges->setVisible(true);
-
-                ui->list_memStates->setVisible(false);
-                ui->l_memOcTableTitle->setVisible(false);
-            } else {
-                ui->btn_setOcRanges->setVisible(false);
-            }
-
-            if (ui->cb_restoreOcProfile->isChecked())
-                setCurrentOcProfile(ui->l_currentOcProfile->text());
-        }
-    }
 }
 
 void radeon_profile::refreshGpuData() {
@@ -449,7 +366,6 @@ void radeon_profile::updateExecLogs() {
 void radeon_profile::enableUiControls(bool enable)
 {
     ui->tw_main->setTabEnabled(2, enable);
-    ui->tw_main->setTabEnabled(3, enable);
     ui->widget_pmControls->setEnabled(enable);
 }
 
