@@ -105,7 +105,7 @@ struct GPUSysInfo {
 };
 
 struct RPValue {
-    ValueUnit unit;
+    ValueUnit unit = ValueUnit::NONE;
     float value;
     QString strValue;
 

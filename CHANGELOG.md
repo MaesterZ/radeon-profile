@@ -22,7 +22,8 @@ README for the new dependencies.
   `QRandomGenerator`, `QDesktopWidget` → `QWidget::screen()`, `QString::SkipEmptyParts` →
   `Qt::SkipEmptyParts`, `QPalette::background()`/`foreground()` → `window()`/`windowText()`,
   `QTreeWidgetItem::setBackgroundColor()` → `setBackground()`, `QLayout::setMargin()` →
-  `setContentsMargins()`, `QProcess::start(command)` → `startCommand()`, and the Qt 6 argument
+  `setContentsMargins()`, `QProcess::start(command)` → `startCommand()` (without it, every Exec
+  tab profile failed to start), and the Qt 6 argument
   order of `QtConcurrent::run()`.
 - Four string-based `SIGNAL()` connections pointed at signals removed in Qt 6 and would have
   failed silently at runtime (GPU selector, fan profile selector, power profile buttons, exec
@@ -36,6 +37,24 @@ Qt 6 follows the desktop dark theme. Top bar text items stored the light theme t
 (black) in the config, which made the clocks and temperature unreadable on a dark theme. Text
 items now default to the theme text color and follow theme changes; a color picked by the user
 is kept. Configs from older versions are migrated: black text items switch to the theme color.
+
+### Graphs readable with a dark or light theme
+
+Graphs had a fixed light background, black lines and green/red grid and axis numbers, which was
+hard to read on a dark theme. By default the background, grid, axis numbers, axis titles and
+legend now follow the theme (also when it changes), with a faint grid. Lines use a palette that
+reads well on both dark and light backgrounds, 2 px wide; new lines in the plot editor get the
+next palette color instead of black. The legend is on the right of each graph. Colors picked by
+the user are kept. Configs from older versions are migrated: plot backgrounds and grids switch to
+the theme and black lines get palette colors.
+
+### About tab, version, build warnings
+
+- About tab links point to the maintained fork (`github.com/MaesterZ`).
+- Version bumped to `20261020`.
+- Release builds were showing 28 `-Wmaybe-uninitialized` warnings. Event, value and top bar
+  members now have default values, and an unknown top bar item type is skipped. The app and the
+  daemon build without warnings, also with `-Wall -Wextra`.
 
 # [2026-05-12]
 

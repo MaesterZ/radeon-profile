@@ -26,10 +26,12 @@ void Dialog_definePlot::setEditedPlotSchema(const PlotDefinitionSchema &pds) {
     on_cb_enableLeftScale_clicked(schema.left.enabled);
     on_cb_enableRightScale_clicked(schema.right.enabled);
 
-    ui->frame_background->setPalette(QPalette(schema.background));
-    ui->frame_leftGridColor->setPalette(QPalette(schema.left.penGrid.color()));
+    // invalid colors follow the theme, show the theme color for them
+    const QColor themeText = PlotColors::text(palette());
+    ui->frame_background->setPalette(QPalette(schema.background.isValid() ? schema.background : PlotColors::background(palette())));
+    ui->frame_leftGridColor->setPalette(QPalette(schema.left.penGrid.color().isValid() ? schema.left.penGrid.color() : themeText));
     ui->slider_thickLeft->setValue(schema.left.penGrid.width());
-    ui->frame_rightGridColor->setPalette(QPalette(schema.right.penGrid.color()));
+    ui->frame_rightGridColor->setPalette(QPalette(schema.right.penGrid.color().isValid() ? schema.right.penGrid.color() : themeText));
     ui->slider_thickRight->setValue(schema.right.penGrid.width());
 
     ui->slider_ticksLeft->setValue(schema.left.ticks);
@@ -71,6 +73,18 @@ void Dialog_definePlot::init() {
     ui->frame_rightGridColor->setAutoFillBackground(true);
     ui->frame_leftGridColor->setAutoFillBackground(true);
     ui->frame_background->setAutoFillBackground(true);
+
+    // new plots follow the theme until the user picks other colors
+    ui->frame_background->setPalette(QPalette(PlotColors::background(palette())));
+    ui->frame_leftGridColor->setPalette(QPalette(PlotColors::text(palette())));
+    ui->frame_rightGridColor->setPalette(QPalette(PlotColors::text(palette())));
+}
+
+QColor Dialog_definePlot::getSelectedColor(const QFrame *frame, const QColor &themeColor) {
+    const QColor c = frame->palette().window().color();
+
+    // left at the theme color: store "follow the theme"
+    return (c == themeColor) ? QColor() : c;
 }
 
 void Dialog_definePlot::createStyleCombo(QComboBox *combo) {
@@ -159,8 +173,13 @@ void Dialog_definePlot::addSelectedItemToSchema(int itemIndex, QTreeWidgetItem *
         if (!schemaDataList.isEmpty() && globalStuff::getUnitFomValueId(schemaDataList.keys().at(0)) != globalStuff::getUnitFomValueId(listRelationToValueID.value(itemIndex))) {
             QMessageBox::information(this, "Info", tr("Values with different units cannot be selected for the same scale"));
             item->setCheckState(0, Qt::Unchecked);
-        } else
+        } else {
+            // no color picked yet: take the next palette color instead of black
+            if (item->background(1).style() == Qt::NoBrush)
+                item->setBackground(1, PlotColors::series(schema.left.dataList.count() + schema.right.dataList.count()));
+
             schemaDataList.insert(listRelationToValueID.value(itemIndex), item->background(1).color());
+        }
     }
 }
 
@@ -189,7 +208,7 @@ void Dialog_definePlot::on_btn_save_clicked()
         return;
     }
 
-    schema.background = ui->frame_background->palette().window().color();
+    schema.background = getSelectedColor(ui->frame_background, PlotColors::background(palette()));
     schema.name = ui->line_name->text();
     schema.left.enabled = ui->cb_enableLeftScale->isChecked();
     schema.right.enabled = ui->cb_enableRightScale->isChecked();
@@ -207,11 +226,11 @@ void Dialog_definePlot::on_btn_save_clicked()
     else
         schema.right.enabled = false;
 
-    schema.left.penGrid = QPen(ui->frame_leftGridColor->palette().window().color(),
+    schema.left.penGrid = QPen(getSelectedColor(ui->frame_leftGridColor, PlotColors::text(palette())),
                               ui->slider_thickLeft->value(),
                               static_cast<Qt::PenStyle>(ui->combo_leftScaleStyle->currentData().toInt()));
 
-    schema.right.penGrid = QPen(ui->frame_rightGridColor->palette().window().color(),
+    schema.right.penGrid = QPen(getSelectedColor(ui->frame_rightGridColor, PlotColors::text(palette())),
                               ui->slider_thickRight->value(),
                               static_cast<Qt::PenStyle>(ui->combo_rightScaleStyle->currentData().toInt()));
 

@@ -228,7 +228,7 @@ public:
     }
 
     void addToLayout(QHBoxLayout *layout, const TopbarItemDefinitionSchema &tis) {
-        TopbarItem *item;
+        TopbarItem *item = nullptr;
 
         switch (tis.type) {
             case TopbarItemType::LARGE_LABEL:
@@ -241,6 +241,10 @@ public:
                 item = new PieItem(tis.pieMaxValue, tis.primaryValueId, tis.primaryColor, layout->widget());
                 break;
         }
+
+        // unknown type, e.g. from a hand-edited config
+        if (item == nullptr)
+            return;
 
         if (tis.secondaryValueIdEnabled) {
             item->setSecondaryValueId(tis.secondaryValueId);

@@ -61,7 +61,8 @@ void ExecBin::setupTab() {
 }
 
 void ExecBin::runBin(const QString &cmd) {
-    p->start(cmd);
+    // cmd is a full command line (quoted binary + parameters), Qt 6 start() would take it as the program name
+    p->startCommand(cmd);
     this->cmd->setPlainText(p->processEnvironment().toStringList().join(" ") +" "+ cmd);
 }
 
