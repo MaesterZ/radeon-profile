@@ -193,7 +193,7 @@ void radeon_profile::createPowerProfileControlButtons(const PowerProfiles &modes
     }
 
     ui->widget_pmControls->setLayout(new QVBoxLayout(ui->widget_pmControls));
-    ui->widget_pmControls->layout()->setMargin(2);
+    ui->widget_pmControls->layout()->setContentsMargins(2, 2, 2, 2);
 
     qDebug() << "Creating power profiles control buttons";
 

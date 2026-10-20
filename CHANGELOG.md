@@ -13,6 +13,30 @@ On amdgpu the `power_method` file (radeon driver only) is never found, so its pa
 Reading it made Qt print `QFSFileEngine::open: No file name specified` on every launch.
 `getValueFromSysFsFile()` now returns its "not available" value for an empty path.
 
+## Port to Qt 6
+
+Qt 5 is end of life. The app now builds with Qt 6 (`qmake6`, C++17) instead of Qt 5; see the
+README for the new dependencies.
+
+- Replaced APIs removed in Qt 6: `QRegExp` → `QRegularExpression`, `qsrand`/`qrand` →
+  `QRandomGenerator`, `QDesktopWidget` → `QWidget::screen()`, `QString::SkipEmptyParts` →
+  `Qt::SkipEmptyParts`, `QPalette::background()`/`foreground()` → `window()`/`windowText()`,
+  `QTreeWidgetItem::setBackgroundColor()` → `setBackground()`, `QLayout::setMargin()` →
+  `setContentsMargins()`, `QProcess::start(command)` → `startCommand()`, and the Qt 6 argument
+  order of `QtConcurrent::run()`.
+- Four string-based `SIGNAL()` connections pointed at signals removed in Qt 6 and would have
+  failed silently at runtime (GPU selector, fan profile selector, power profile buttons, exec
+  process end). They now use compile-checked function-pointer connections.
+- `gpu.cpp`: building the monitor PnP ID wrote past the end of an empty `QString`, which Qt 5
+  tolerated and is out of bounds in Qt 6.
+
+### Top bar text follows the theme
+
+Qt 6 follows the desktop dark theme. Top bar text items stored the light theme text color
+(black) in the config, which made the clocks and temperature unreadable on a dark theme. Text
+items now default to the theme text color and follow theme changes; a color picked by the user
+is kept. Configs from older versions are migrated: black text items switch to the theme color.
+
 # [2026-05-12]
 
 ## Removed overclocking features

@@ -6,6 +6,7 @@
 #include <cmath>
 #include <QFile>
 #include <QDebug>
+#include <QRegularExpression>
 #include <QtConcurrent/QtConcurrent>
 
 extern "C" {
@@ -41,7 +42,7 @@ static const char * pnpIdFiles [PNP_ID_FILE_COUNT] = {
 };
 
 void gpu::detectCards() {
-    QStringList out = globalStuff::grabSystemInfo("ls /sys/class/drm/").filter(QRegExp("card\\d$"));
+    QStringList out = globalStuff::grabSystemInfo("ls /sys/class/drm/").filter(QRegularExpression("card\\d$"));
 
     for (int i = 0; i < out.count(); i++) {
         QFile f("/sys/class/drm/"+out[i]+"/device/uevent");
@@ -52,7 +53,7 @@ void gpu::detectCards() {
         QStringList ueventContents = QString(f.readAll()).split('\n');
         f.close();
 
-        int driverIdx = ueventContents.indexOf(QRegExp("DRIVER=[radeon|amdgpu]+"));
+        int driverIdx = ueventContents.indexOf(QRegularExpression("DRIVER=[radeon|amdgpu]+"));
         if (driverIdx == -1)
             continue;
 
@@ -67,7 +68,7 @@ void gpu::detectCards() {
 
         gsi.sysName = gsi.name = out[i];
 
-        int pciIdx = ueventContents.indexOf(QRegExp("PCI_SLOT_NAME.+"));
+        int pciIdx = ueventContents.indexOf(QRegularExpression("PCI_SLOT_NAME.+"));
         if (pciIdx != -1)
             gsi.name = globalStuff::grabSystemInfo("lspci -s " + ueventContents[pciIdx].split('=')[1])[0].split(':')[2].trimmed();
 
@@ -216,7 +217,7 @@ void gpu::getTemperature() {
 void gpu::getGpuUsage() {
 
     // getting gpu usage seems to be heavy and cause ui lag, so it is done in another thread
-    futureGpuUsage.setFuture(QtConcurrent::run(driverHandler,&dXorg::getGPUUsage));
+    futureGpuUsage.setFuture(QtConcurrent::run(&dXorg::getGPUUsage, driverHandler));
 }
 
 QList<QTreeWidgetItem *> gpu::getModuleInfo() const {
@@ -234,11 +235,11 @@ QStringList gpu::getGLXInfo(QString gpuName) const {
         env.insert("DRI_PRIME",gpuName.at(gpuName.length()-1));
     QStringList driver = globalStuff::grabSystemInfo("xdriinfo",env).filter("Screen 0:",Qt::CaseInsensitive);
     if (!driver.isEmpty())  // because of segfault when no xdriinfo
-        data << "OpenGL driver:"+ driver.filter("Screen 0:",Qt::CaseInsensitive)[0].split(":",QString::SkipEmptyParts)[1];
+        data << "OpenGL driver:"+ driver.filter("Screen 0:",Qt::CaseInsensitive)[0].split(":",Qt::SkipEmptyParts)[1];
 
     data << "Kernel driver: " + gpuList.at(currentGpuIndex).driverModuleString;
 
-    data << globalStuff::grabSystemInfo("glxinfo -B",env).filter(QRegExp(".+"));
+    data << globalStuff::grabSystemInfo("glxinfo -B",env).filter(QRegularExpression(".+"));
 
     return data;
 }
@@ -396,9 +397,9 @@ QString getMonitorName(const quint8 *EDID){
 
     //Get the vendor PnP ID
     QString pnpId, modelName;
-    pnpId[0] = 'A' + ((EDID[EDID_OFFSET_PNP_ID + 0] & 0x7c) / 4) - 1;
-    pnpId[1] = 'A' + ((EDID[EDID_OFFSET_PNP_ID + 0] & 0x3) * 8) + ((EDID[EDID_OFFSET_PNP_ID + 1] & 0xe0) / 32) - 1;
-    pnpId[2] = 'A' + (EDID[EDID_OFFSET_PNP_ID + 1] & 0x1f) - 1;
+    pnpId.append(QChar('A' + ((EDID[EDID_OFFSET_PNP_ID + 0] & 0x7c) / 4) - 1));
+    pnpId.append(QChar('A' + ((EDID[EDID_OFFSET_PNP_ID + 0] & 0x3) * 8) + ((EDID[EDID_OFFSET_PNP_ID + 1] & 0xe0) / 32) - 1));
+    pnpId.append(QChar('A' + (EDID[EDID_OFFSET_PNP_ID + 1] & 0x1f) - 1));
 
     //Translate the PnP ID into human-readable vendor name
     monitorName.append(translatePnpId(pnpId));
@@ -496,7 +497,7 @@ QList<QTreeWidgetItem *> gpu::getCardConnectors() const {
     // Old implementation, parsing the output of xrandr
 
     QStringList out = globalStuff::grabSystemInfo("xrandr -q --verbose"), screens;
-    screens = out.filter(QRegExp("Screen\\s\\d"));
+    screens = out.filter(QRegularExpression("Screen\\s\\d"));
 
     for (int i = 0; i < screens.count(); i++) {
         QTreeWidgetItem *item = new QTreeWidgetItem(QStringList() << screens[i].split(':')[0] << screens[i].split(",")[1].remove(" current "));
@@ -514,7 +515,7 @@ QList<QTreeWidgetItem *> gpu::getCardConnectors() const {
                 QString monitor, edid = monitor = "";
 
                 // find EDID
-                for (int i = out.indexOf(QRegExp(".+EDID.+"))+1; i < out.count(); i++)
+                for (int i = out.indexOf(QRegularExpression(".+EDID.+"))+1; i < out.count(); i++)
                     if (out[i].startsWith(("\t\t")))
                         edid += out[i].remove("\t\t");
                     else
@@ -546,7 +547,7 @@ QList<QTreeWidgetItem *> gpu::getCardConnectors() const {
                     if (ok && found) {
                         // Hex -> String
                         for(i2 = 0; i2 < hex.size(); i2++) {
-                            monitor += QString(hex[i2].toInt(&ok, 16));
+                            monitor += QChar(hex[i2].toInt(&ok, 16));
                             if(!ok)
                                 break;
                         }

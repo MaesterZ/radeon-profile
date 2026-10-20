@@ -42,6 +42,7 @@ private:
     void createCombo(QComboBox *combo, const TopbarItemType type, bool emptyFirst = false);
     void createSecondaryCombo();
     TopbarItemType getItemType();
+    QColor getSelectedTextColor(const QFrame *frame);
     QColor getColor(const QColor &c);
     void setSecondaryEditEnabled(bool colorEditEnabled, bool comboEnabled);
 };

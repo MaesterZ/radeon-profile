@@ -336,7 +336,7 @@ public:
         QProcess *p = new QProcess();
         p->setProcessChannelMode(QProcess::MergedChannels);
 
-        p->start(cmd,QIODevice::ReadOnly);
+        p->startCommand(cmd, QIODevice::ReadOnly);
         p->waitForFinished();
 
         QString a = p->readAllStandardOutput();
@@ -349,7 +349,7 @@ public:
         p->setProcessChannelMode(QProcess::MergedChannels);
         p->setProcessEnvironment(env);
 
-        p->start(cmd,QIODevice::ReadOnly);
+        p->startCommand(cmd, QIODevice::ReadOnly);
         p->waitForFinished();
 
         QString a = p->readAllStandardOutput();

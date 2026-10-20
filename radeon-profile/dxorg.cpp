@@ -7,6 +7,8 @@
 #include <QFile>
 #include <QTextStream>
 #include <QTime>
+#include <QRegularExpression>
+#include <QRandomGenerator>
 #include <QCoreApplication>
 #include <QDebug>
 #include <QString>
@@ -78,10 +80,9 @@ QString getRandomString() {
    const QString possibleCharacters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
 
    QString randomString;
-   qsrand(QTime::currentTime().msecsSinceStartOfDay());
 
    for (int i = 0; i < 10; ++i)
-       randomString.append(possibleCharacters.at(qrand() % possibleCharacters.length()));
+       randomString.append(possibleCharacters.at(QRandomGenerator::global()->bounded(possibleCharacters.length())));
 
    return randomString;
 }
@@ -219,46 +220,39 @@ GPUClocks dXorg::getClocksFromPmFile() {
     switch (features.currentPowerMethod) {
         case PowerMethod::PP_MODE:
         case PowerMethod::DPM: {
-            QRegExp rx;
+            QString match;
 
-            rx.setPattern(rxPatterns.powerLevel);
-            rx.indexIn(data);
-            if (!rx.cap(0).isEmpty())
-                clocksData.powerLevel = rx.cap(0).split(' ')[2].toShort();
+            match = QRegularExpression(rxPatterns.powerLevel).match(data).captured(0);
+            if (!match.isEmpty())
+                clocksData.powerLevel = match.split(' ')[2].toShort();
 
-            rx.setPattern(rxPatterns.sclk);
-            rx.indexIn(data);
-            if (!rx.cap(0).isEmpty())
-                clocksData.coreClk = rx.cap(0).split(' ',QString::SkipEmptyParts)[rxMatchIndex].toFloat() / dXorg::clocksValueDivider;
+            match = QRegularExpression(rxPatterns.sclk).match(data).captured(0);
+            if (!match.isEmpty())
+                clocksData.coreClk = match.split(' ',Qt::SkipEmptyParts)[rxMatchIndex].toFloat() / dXorg::clocksValueDivider;
 
-            rx.setPattern(rxPatterns.mclk);
-            rx.indexIn(data);
-            if (!rx.cap(0).isEmpty())
-                clocksData.memClk = rx.cap(0).split(' ',QString::SkipEmptyParts)[rxMatchIndex].toFloat() / dXorg::clocksValueDivider;
+            match = QRegularExpression(rxPatterns.mclk).match(data).captured(0);
+            if (!match.isEmpty())
+                clocksData.memClk = match.split(' ',Qt::SkipEmptyParts)[rxMatchIndex].toFloat() / dXorg::clocksValueDivider;
 
-            rx.setPattern(rxPatterns.vclk);
-            rx.indexIn(data);
-            if (!rx.cap(0).isEmpty()) {
-                clocksData.uvdCClk = rx.cap(0).split(' ',QString::SkipEmptyParts)[rxMatchIndex].toFloat() / dXorg::clocksValueDivider;
+            match = QRegularExpression(rxPatterns.vclk).match(data).captured(0);
+            if (!match.isEmpty()) {
+                clocksData.uvdCClk = match.split(' ',Qt::SkipEmptyParts)[rxMatchIndex].toFloat() / dXorg::clocksValueDivider;
                 clocksData.uvdCClk  = (clocksData.uvdCClk  == 0) ? -1 :  clocksData.uvdCClk;
             }
 
-            rx.setPattern(rxPatterns.dclk);
-            rx.indexIn(data);
-            if (!rx.cap(0).isEmpty()) {
-                clocksData.uvdDClk = rx.cap(0).split(' ',QString::SkipEmptyParts)[rxMatchIndex].toFloat() / dXorg::clocksValueDivider;
+            match = QRegularExpression(rxPatterns.dclk).match(data).captured(0);
+            if (!match.isEmpty()) {
+                clocksData.uvdDClk = match.split(' ',Qt::SkipEmptyParts)[rxMatchIndex].toFloat() / dXorg::clocksValueDivider;
                 clocksData.uvdDClk = (clocksData.uvdDClk == 0) ? -1 : clocksData.uvdDClk;
             }
 
-            rx.setPattern(rxPatterns.vddc);
-            rx.indexIn(data);
-            if (!rx.cap(0).isEmpty())
-                clocksData.coreVolt = rx.cap(0).split(' ',QString::SkipEmptyParts)[rxMatchIndex].toInt();
+            match = QRegularExpression(rxPatterns.vddc).match(data).captured(0);
+            if (!match.isEmpty())
+                clocksData.coreVolt = match.split(' ',Qt::SkipEmptyParts)[rxMatchIndex].toInt();
 
-            rx.setPattern(rxPatterns.vddci);
-            rx.indexIn(data);
-            if (!rx.cap(0).isEmpty())
-                clocksData.memVolt = rx.cap(0).split(' ',QString::SkipEmptyParts)[rxMatchIndex].toInt();
+            match = QRegularExpression(rxPatterns.vddci).match(data).captured(0);
+            if (!match.isEmpty())
+                clocksData.memVolt = match.split(' ',Qt::SkipEmptyParts)[rxMatchIndex].toInt();
 
             return clocksData;
         }
@@ -269,17 +263,17 @@ GPUClocks dXorg::getClocksFromPmFile() {
                 switch (i) {
                     case 1:
                         if (dataStr[i].contains("current engine clock"))
-                            clocksData.coreClk = QString::number(dataStr[i].split(' ',QString::SkipEmptyParts,Qt::CaseInsensitive)[3].toFloat() / 1000).toFloat();
+                            clocksData.coreClk = QString::number(dataStr[i].split(' ',Qt::SkipEmptyParts,Qt::CaseInsensitive)[3].toFloat() / 1000).toFloat();
                         break;
 
                     case 3:
                         if (dataStr[i].contains("current memory clock"))
-                            clocksData.memClk = QString::number(dataStr[i].split(' ',QString::SkipEmptyParts,Qt::CaseInsensitive)[3].toFloat() / 1000).toFloat();
+                            clocksData.memClk = QString::number(dataStr[i].split(' ',Qt::SkipEmptyParts,Qt::CaseInsensitive)[3].toFloat() / 1000).toFloat();
                         break;
 
                     case 4:
                         if (dataStr[i].contains("voltage"))
-                            clocksData.coreVolt = QString::number(dataStr[i].split(' ',QString::SkipEmptyParts,Qt::CaseInsensitive)[1].toFloat()).toFloat();
+                            clocksData.coreVolt = QString::number(dataStr[i].split(' ',Qt::SkipEmptyParts,Qt::CaseInsensitive)[1].toFloat()).toFloat();
                         break;
                 }
             }
@@ -303,12 +297,12 @@ float dXorg::getTemperature() {
             return getValueFromSysFsFile(driverFiles.hwmonAttributes.temp1).toFloat() / 1000;
         case TemperatureSensor::PCI_SENSOR: {
             QStringList out = globalStuff::grabSystemInfo("sensors");
-            temp = out[sensorsGPUtempIndex+2].split(" ",QString::SkipEmptyParts)[1].remove("+").remove("C").remove("°");
+            temp = out[sensorsGPUtempIndex+2].split(" ",Qt::SkipEmptyParts)[1].remove("+").remove("C").remove("°");
             break;
         }
         case TemperatureSensor::MB_SENSOR: {
             QStringList out = globalStuff::grabSystemInfo("sensors");
-            temp = out[sensorsGPUtempIndex].split(" ",QString::SkipEmptyParts)[1].remove("+").remove("C").remove("°");
+            temp = out[sensorsGPUtempIndex].split(" ",Qt::SkipEmptyParts)[1].remove("+").remove("C").remove("°");
             break;
         }
         case TemperatureSensor::TS_UNKNOWN:
@@ -360,12 +354,12 @@ TemperatureSensor dXorg::getTemperatureSensor() {
 
         // if above fails, use lm_sensors
         QStringList out = globalStuff::grabSystemInfo("sensors");
-        if (out.indexOf(QRegExp(features.sysInfo.driverModuleString+"-pci.+")) != -1) {
-            sensorsGPUtempIndex = out.indexOf(QRegExp(features.sysInfo.driverModuleString+"-pci.+"));  // in order to not search for it again in timer loop
+        if (out.indexOf(QRegularExpression(features.sysInfo.driverModuleString+"-pci.+")) != -1) {
+            sensorsGPUtempIndex = out.indexOf(QRegularExpression(features.sysInfo.driverModuleString+"-pci.+"));  // in order to not search for it again in timer loop
             return TemperatureSensor::PCI_SENSOR;
         }
-        else if (out.indexOf(QRegExp("VGA_TEMP.+")) != -1) {
-            sensorsGPUtempIndex = out.indexOf(QRegExp("VGA_TEMP.+"));
+        else if (out.indexOf(QRegularExpression("VGA_TEMP.+")) != -1) {
+            sensorsGPUtempIndex = out.indexOf(QRegularExpression("VGA_TEMP.+"));
             return TemperatureSensor::MB_SENSOR;
         }
     }
@@ -401,8 +395,8 @@ QList<QTreeWidgetItem *> dXorg::getModuleInfo() {
                 continue;
             }
             // read module param name and description from modinfo command
-            QString modName = modInfo[i].split(":",QString::SkipEmptyParts)[0],
-                    modDesc = modInfo[i].split(":",QString::SkipEmptyParts)[1],
+            QString modName = modInfo[i].split(":",Qt::SkipEmptyParts)[0],
+                    modDesc = modInfo[i].split(":",Qt::SkipEmptyParts)[1],
                     modValue;
 
             // read current param values
@@ -516,13 +510,12 @@ GPUFanSpeed dXorg::getFanSpeed() {
 }
 
 void dXorg::setupRegex(const QString &data) {
-    QRegExp rx;
+    QString match;
 
     switch (features.sysInfo.module) {
         case DriverModule::RADEON:
-            rx.setPattern("sclk:\\s\\d+");
-            rx.indexIn(data);
-            if (!rx.cap(0).isEmpty()) {
+            match = QRegularExpression("sclk:\\s\\d+").match(data).captured(0);
+            if (!match.isEmpty()) {
                 dXorg::rxPatterns.powerLevel = "power\\slevel\\s\\d",
                         dXorg::rxPatterns.sclk = "sclk:\\s\\d+",
                         dXorg::rxPatterns.mclk = "mclk:\\s\\d+",
@@ -539,9 +532,8 @@ void dXorg::setupRegex(const QString &data) {
             return;
 
         case DriverModule::AMDGPU:
-            rx.setPattern("\\[\\s+sclk\\s+\\]:\\s\\d+");
-            rx.indexIn(data);
-            if (!rx.cap(0).isEmpty()) {
+            match = QRegularExpression("\\[\\s+sclk\\s+\\]:\\s\\d+").match(data).captured(0);
+            if (!match.isEmpty()) {
                 dXorg::rxPatterns.sclk = "\\[\\s+sclk\\s+\\]:\\s\\d+",
                         dXorg::rxPatterns.mclk = "\\[\\s+mclk\\s+\\]:\\s\\d+";
 
@@ -551,9 +543,8 @@ void dXorg::setupRegex(const QString &data) {
             }
 
 
-            rx.setPattern("\\d+\\s\\w+\\s\\(SCLK\\)");
-            rx.indexIn(data);
-            if (!rx.cap(0).isEmpty()) {
+            match = QRegularExpression("\\d+\\s\\w+\\s\\(SCLK\\)").match(data).captured(0);
+            if (!match.isEmpty()) {
                 dXorg::rxPatterns.sclk = "\\d+\\s\\w+\\s\\(SCLK\\)",
                         dXorg::rxPatterns.mclk = "\\d+\\s\\w+\\s\\(MCLK\\)";
 
@@ -562,9 +553,8 @@ void dXorg::setupRegex(const QString &data) {
                 return;
             }
 
-            rx.setPattern("sclk:\\s\\d+");
-            rx.indexIn(data);
-            if (!rx.cap(0).isEmpty()) {
+            match = QRegularExpression("sclk:\\s\\d+").match(data).captured(0);
+            if (!match.isEmpty()) {
                 dXorg::rxPatterns.powerLevel = "power\\slevel\\s\\d",
                         dXorg::rxPatterns.sclk = "sclk:\\s\\d+",
                         dXorg::rxPatterns.mclk = "mclk:\\s\\d+",
@@ -737,7 +727,7 @@ QString dXorg::createDaemonSetCmd(const QString &file, const QString &value)
 
 QStringList dXorg::loadPowerPlayTable(const QString &file) {
     QStringList ppt;
-    QStringList sl = getValueFromSysFsFile(file).split('\n', QString::SkipEmptyParts);
+    QStringList sl = getValueFromSysFsFile(file).split('\n', Qt::SkipEmptyParts);
 
     if (sl.isEmpty() || sl.at(0) == "-1")
         return ppt;
@@ -752,7 +742,7 @@ int dXorg::getCurrentPowerPlayTableId(const QString &file) {
     if (file.isEmpty())
         return 0;
 
-    QStringList sl = getValueFromSysFsFile(file).split('\n', QString::SkipEmptyParts);
+    QStringList sl = getValueFromSysFsFile(file).split('\n', Qt::SkipEmptyParts);
 
     if (sl.isEmpty() || sl.at(0) == "-1")
         return 0;
@@ -814,7 +804,7 @@ PowerProfiles dXorg::getPowerProfiles(const PowerMethod powerMethod) {
                 if (sl[i].contains("CUSTOM"))
                     continue;
 
-                QStringList profileLine = sl[i].split(" " , QString::SkipEmptyParts);
+                QStringList profileLine = sl[i].split(" " , Qt::SkipEmptyParts);
 
                 ppModes.append(PowerProfileDefinition(profileLine[0].toUInt(), sl[i].contains("*"), profileLine[1].remove("*").remove(':')));
             }

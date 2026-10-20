@@ -8,7 +8,7 @@
 #include <QMenu>
 #include <QDir>
 #include <QTreeWidgetItem>
-#include <QDesktopWidget>
+#include <QScreen>
 #include <QRect>
 
 QString getConfigPath() {
@@ -190,12 +190,14 @@ void radeon_profile::saveTopbarItemsSchemas(QXmlStreamWriter &xml) {
     for (const TopbarItemDefinitionSchema &tis : topbarManager.schemas) {
         xml.writeStartElement("topbarItem");
 
+        // format 2: an empty color means "follow the theme"
+        xml.writeAttribute("format", "2");
         xml.writeAttribute("type", QString::number(tis.type));
         xml.writeAttribute("primaryValueId", QString::number(tis.primaryValueId));
-        xml.writeAttribute("primaryColor", tis.primaryColor.name());
+        xml.writeAttribute("primaryColor", tis.primaryColor.isValid() ? tis.primaryColor.name() : "");
         xml.writeAttribute("secondaryValueIdEnabled", QString::number(tis.secondaryValueIdEnabled));
         xml.writeAttribute("secondaryValueId", QString::number(tis.secondaryValueId));
-        xml.writeAttribute("secondaryColor", tis.secondaryColor.name());
+        xml.writeAttribute("secondaryColor", tis.secondaryColor.isValid() ? tis.secondaryColor.name() : "");
         xml.writeAttribute("pieMaxValue", QString::number(tis.pieMaxValue));
 
         xml.writeEndElement();
@@ -253,7 +255,7 @@ void radeon_profile::loadConfig() {
         this->setGeometry(settings.value("windowGeometry").toRect());
     else {
         // Set up the size at 1/2 of the screen size, centered
-        const QRect desktopSize = QDesktopWidget().availableGeometry(this);
+        const QRect desktopSize = screen()->availableGeometry();
         this->setGeometry(desktopSize.width() / 4, // Left offset
                          desktopSize.height() / 4, // Top offset
                          desktopSize.width() / 2, // Width
@@ -312,8 +314,6 @@ void radeon_profile::loadConfig() {
     // create default if empty
     if (fanProfiles.count() == 0)
         createDefaultFanProfile();
-
-    topbarManager.setDefaultForeground(QWidget::palette().foreground().color());
 }
 
 void radeon_profile::loadRpevent(const QXmlStreamReader &xml) {
@@ -380,14 +380,23 @@ void radeon_profile::loadPlotSchemas(QXmlStreamReader &xml) {
 }
 
 void radeon_profile::loadTopbarItemsSchemas(const QXmlStreamReader &xml) {
+    const TopbarItemType type = static_cast<TopbarItemType>(xml.attributes().value("type").toInt());
+
+    // older configs stored the light theme text color (black) for text items,
+    // treat it as "follow the theme" so they stay readable with a dark theme
+    const bool legacyTextItem = !xml.attributes().hasAttribute("format") && type != TopbarItemType::PIE;
+    auto loadColor = [&xml, legacyTextItem](const QString &attribute) {
+        const QColor c(xml.attributes().value(attribute).toString());
+        return (legacyTextItem && c == QColor(Qt::black)) ? QColor() : c;
+    };
+
     TopbarItemDefinitionSchema tis(static_cast<ValueID>(xml.attributes().value("primaryValueId").toInt()),
-                                   static_cast<TopbarItemType>(xml.attributes().value("type").toInt()),
-                                   QColor(xml.attributes().value("primaryColor").toString()));
+                                   type, loadColor("primaryColor"));
 
     tis.setPieMaxValue(xml.attributes().value("pieMaxValue").toInt());
 
     if (xml.attributes().value("secondaryValueIdEnabled").toInt() == 1) {
-        tis.setSecondaryColor(QColor(xml.attributes().value("secondaryColor").toString()));
+        tis.setSecondaryColor(loadColor("secondaryColor"));
         tis.setSecondaryValueId(static_cast<ValueID>(xml.attributes().value("secondaryValueId").toInt()));
     }
 

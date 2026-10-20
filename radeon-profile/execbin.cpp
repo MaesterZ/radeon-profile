@@ -6,6 +6,8 @@
 
 #include <QLabel>
 #include <QFileDialog>
+#include <QMessageBox>
+#include <QDebug>
 
 ExecBin::ExecBin() : QObject(),
     tab(new QWidget()),
@@ -21,7 +23,7 @@ ExecBin::ExecBin() : QObject(),
     setupTab();
 
     connect(p,SIGNAL(readyReadStandardOutput()),this,SLOT(execProcessReadOutput()));
-    connect(p,SIGNAL(finished(int)),this,SLOT(execProcesFinished()));
+    connect(p, &QProcess::finished, this, &ExecBin::execProcesFinished);
     connect(p,SIGNAL(started()),this,SLOT(execProcesStart()));
     connect(btnSave,SIGNAL(clicked()),this,SLOT(saveToFile()));
 }
@@ -81,9 +83,11 @@ void ExecBin::execProcesStart() {
 void ExecBin::execProcesFinished() {
     if (!this->logData.logFilename.isEmpty() && this->logData.log.count() > 0) {
         QFile f(logData.logFilename);
-        f.open(QIODevice::WriteOnly);
-        f.write(this->logData.log.join("\n").toLatin1());
-        f.close();
+        if (f.open(QIODevice::WriteOnly)) {
+            f.write(this->logData.log.join("\n").toLatin1());
+            f.close();
+        } else
+            qWarning() << "Cannot write log file:" << logData.logFilename;
         this->logData.log.clear();
     }
 
@@ -94,9 +98,11 @@ void ExecBin::saveToFile() {
         QString filename = QFileDialog::getSaveFileName(nullptr, tr("Save"), QDir::homePath()+"/output_"+this->name);
         if (!filename.isEmpty()) {
             QFile f(filename);
-            f.open(QIODevice::WriteOnly);
-            f.write(this->output->toPlainText().toLatin1());
-            f.close();
+            if (f.open(QIODevice::WriteOnly)) {
+                f.write(this->output->toPlainText().toLatin1());
+                f.close();
+            } else
+                QMessageBox::critical(nullptr, tr("Error"), tr("Cannot write file: %1").arg(filename));
         }
 }
 
