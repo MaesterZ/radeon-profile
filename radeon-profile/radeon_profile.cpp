@@ -39,6 +39,7 @@ radeon_profile::radeon_profile(QWidget *parent) :
     counter_statsTick(0),
     hysteresisRelativeTepmerature(0),
     enableChangeEvent(false),
+    daemonErrorShown(false),
     savedState(nullptr),
     ui(new Ui::radeon_profile)
 {
@@ -46,6 +47,7 @@ radeon_profile::radeon_profile(QWidget *parent) :
 
     connect(dcomm.getSocketPtr(), SIGNAL(connected()), this, SLOT(daemonConnected()));
     connect(dcomm.getSocketPtr(), SIGNAL(disconnected()), this, SLOT(daemonDisconnected()));
+    connect(dcomm.getSocketPtr(), SIGNAL(errorOccurred(QLocalSocket::LocalSocketError)), this, SLOT(daemonConnectionError(QLocalSocket::LocalSocketError)));
 
     loadConfig();
     setupUiElements();
@@ -111,6 +113,29 @@ void radeon_profile::daemonDisconnected() {
     qDebug() << "Daemon disconnected";
 
     enableUiControls(false);
+}
+
+void radeon_profile::daemonConnectionError(QLocalSocket::LocalSocketError error) {
+    qWarning() << "Daemon connection error:" << error << dcomm.getSocketPtr()->errorString();
+
+    if (dcomm.isConnected())
+        return;
+
+    // warn once, then keep retrying so the UI fills in when the daemon comes up
+    if (!daemonErrorShown) {
+        daemonErrorShown = true;
+
+        // deferred, so the message box doesn't open before the main window
+        QTimer::singleShot(0, this, [this]() {
+            QMessageBox::warning(this, tr("Daemon not available"),
+                                 tr("Cannot connect to radeon-profile-daemon.\n\n"
+                                    "Without root, all GPU data comes from the daemon. Check that it is running:\n"
+                                    "systemctl status radeon-profile-daemon\n\n"
+                                    "Radeon Profile will keep retrying in the background."));
+        });
+    }
+
+    QTimer::singleShot(5000, this, []() { dcomm.connectToDaemon(); });
 }
 
 void radeon_profile::configureDaemonPreDeviceInit() {

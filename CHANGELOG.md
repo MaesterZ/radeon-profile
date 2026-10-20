@@ -1,3 +1,12 @@
+# [2026-10-20]
+
+### `radeon-profile/radeon_profile.cpp` — Report a missing daemon instead of failing silently
+
+Running as a regular user, all GPU data comes from `radeon-profile-daemon`. If the daemon was
+not running, the app opened an empty window with no error, which looked like a startup failure.
+A failed daemon connection now shows a warning once and the connection is retried every 5
+seconds, so the UI fills in as soon as the daemon starts.
+
 # [2026-05-12]
 
 ## Removed overclocking features

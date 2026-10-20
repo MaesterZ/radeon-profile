@@ -114,6 +114,7 @@ private slots:
     void setEnabledChangeEvent() { enableChangeEvent = true; };
     void daemonConnected();
     void daemonDisconnected();
+    void daemonConnectionError(QLocalSocket::LocalSocketError error);
     void on_btn_connConfirmMethodInfo_clicked();
     void setPowerProfile(int mode);
 
@@ -136,7 +137,7 @@ private:
     QMap<QString, unsigned int> pmStats;
     unsigned int counter_ticks, counter_statsTick;
     short hysteresisRelativeTepmerature;
-    bool enableChangeEvent, rootMode;
+    bool enableChangeEvent, rootMode, daemonErrorShown;
     QButtonGroup group_pwm, group_profileControlButtons;
     CurrentStateInfo *savedState;
     PlotManager plotManager;
