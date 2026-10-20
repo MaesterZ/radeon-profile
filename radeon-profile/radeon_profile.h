@@ -28,7 +28,7 @@
 #define minFanStepSpeed 0
 #define maxFanStepSpeed 100
 
-#define appVersion 20200824
+#define appVersion 20261020
 
 namespace Ui {
 class radeon_profile;
@@ -185,7 +185,7 @@ private:
     void saveTopbarItemsSchemas(QXmlStreamWriter &xml);
     void loadTopbarItemsSchemas(const QXmlStreamReader &xml);
     void writePlotAxisSchemaToXml(QXmlStreamWriter &xml, const QString side, const PlotAxisSchema &pas);
-    void loadPlotAxisSchema(const QXmlStreamReader &xml, PlotAxisSchema &pas);
+    void loadPlotAxisSchema(const QXmlStreamReader &xml, PlotAxisSchema &pas, bool legacy);
     void createDefaultFanProfile();
     void loadExecProfiles();
     void setupUiElements();

@@ -8,7 +8,7 @@
 #include <QMenu>
 #include <QDir>
 #include <QTreeWidgetItem>
-#include <QDesktopWidget>
+#include <QScreen>
 #include <QRect>
 
 QString getConfigPath() {
@@ -152,7 +152,7 @@ void radeon_profile::writePlotAxisSchemaToXml(QXmlStreamWriter &xml, const QStri
     xml.writeAttribute("ticks", QString::number(pas.ticks));
     xml.writeAttribute("penStyle", QString::number(pas.penGrid.style()));
     xml.writeAttribute("penWidth", QString::number(pas.penGrid.width()));
-    xml.writeAttribute("penColor", pas.penGrid.color().name());
+    xml.writeAttribute("penColor", pas.penGrid.color().isValid() ? pas.penGrid.color().name() : "");
     xml.writeEndElement();
 
     for (const ValueID &sk : pas.dataList.keys()) {
@@ -171,9 +171,11 @@ void radeon_profile::savePlotSchemas(QXmlStreamWriter &xml) {
         const PlotDefinitionSchema &pds = plotManager.schemas.at(i);
 
         xml.writeStartElement("plot");
+        // format 2: an empty background or grid color means "follow the theme"
+        xml.writeAttribute("format", "2");
         xml.writeAttribute("name", pds.name);
         xml.writeAttribute("enabled", QString::number(pds.enabled));
-        xml.writeAttribute("background", pds.background.name());
+        xml.writeAttribute("background", pds.background.isValid() ? pds.background.name() : "");
 
         writePlotAxisSchemaToXml(xml, "left", pds.left);
         writePlotAxisSchemaToXml(xml, "right", pds.right);
@@ -190,12 +192,14 @@ void radeon_profile::saveTopbarItemsSchemas(QXmlStreamWriter &xml) {
     for (const TopbarItemDefinitionSchema &tis : topbarManager.schemas) {
         xml.writeStartElement("topbarItem");
 
+        // format 2: an empty color means "follow the theme"
+        xml.writeAttribute("format", "2");
         xml.writeAttribute("type", QString::number(tis.type));
         xml.writeAttribute("primaryValueId", QString::number(tis.primaryValueId));
-        xml.writeAttribute("primaryColor", tis.primaryColor.name());
+        xml.writeAttribute("primaryColor", tis.primaryColor.isValid() ? tis.primaryColor.name() : "");
         xml.writeAttribute("secondaryValueIdEnabled", QString::number(tis.secondaryValueIdEnabled));
         xml.writeAttribute("secondaryValueId", QString::number(tis.secondaryValueId));
-        xml.writeAttribute("secondaryColor", tis.secondaryColor.name());
+        xml.writeAttribute("secondaryColor", tis.secondaryColor.isValid() ? tis.secondaryColor.name() : "");
         xml.writeAttribute("pieMaxValue", QString::number(tis.pieMaxValue));
 
         xml.writeEndElement();
@@ -253,7 +257,7 @@ void radeon_profile::loadConfig() {
         this->setGeometry(settings.value("windowGeometry").toRect());
     else {
         // Set up the size at 1/2 of the screen size, centered
-        const QRect desktopSize = QDesktopWidget().availableGeometry(this);
+        const QRect desktopSize = screen()->availableGeometry();
         this->setGeometry(desktopSize.width() / 4, // Left offset
                          desktopSize.height() / 4, // Top offset
                          desktopSize.width() / 2, // Width
@@ -312,8 +316,6 @@ void radeon_profile::loadConfig() {
     // create default if empty
     if (fanProfiles.count() == 0)
         createDefaultFanProfile();
-
-    topbarManager.setDefaultForeground(QWidget::palette().foreground().color());
 }
 
 void radeon_profile::loadRpevent(const QXmlStreamReader &xml) {
@@ -337,37 +339,53 @@ void radeon_profile::loadRpevent(const QXmlStreamReader &xml) {
     ui->list_events->addTopLevelItem(item);
 }
 
-void radeon_profile::loadPlotAxisSchema(const QXmlStreamReader &xml, PlotAxisSchema &pas) {
+void radeon_profile::loadPlotAxisSchema(const QXmlStreamReader &xml, PlotAxisSchema &pas, bool legacy) {
     pas.unit = static_cast<ValueUnit>(xml.attributes().value("unit").toInt());
     pas.ticks = xml.attributes().value("ticks").toInt();
     pas.enabled = xml.attributes().value("enabled").toInt();
 
-    pas.penGrid = QPen(QColor(xml.attributes().value("penColor").toString()),
+    // older configs stored fixed grid colors picked for a light theme, follow the theme instead
+    pas.penGrid = QPen(legacy ? QColor() : QColor(xml.attributes().value("penColor").toString()),
                       xml.attributes().value("penWidth").toInt(),
                       static_cast<Qt::PenStyle>(xml.attributes().value("penStyle").toInt()));
 }
 
 void radeon_profile::loadPlotSchemas(QXmlStreamReader &xml) {
+    // older configs (no format attribute) had a light background and black lines,
+    // switch them to the theme colors and the line palette (user picked line colors are kept)
+    const bool legacy = !xml.attributes().hasAttribute("format");
+
+    // number of series already loaded, so every line in every plot gets its own palette color
+    int seriesIndex = 0;
+    for (const PlotDefinitionSchema &loaded : plotManager.schemas)
+        seriesIndex += loaded.left.dataList.count() + loaded.right.dataList.count();
+
     PlotDefinitionSchema pds;
     pds.name = xml.attributes().value("name").toString();
     pds.enabled = xml.attributes().value("enabled").toInt();
-    pds.background = QColor(xml.attributes().value("background").toString());
+    pds.background = legacy ? QColor() : QColor(xml.attributes().value("background").toString());
 
     while (xml.readNext()) {
         if (xml.name().toString() == "axis") {
 
             if (xml.attributes().value("align") == "left")
-                loadPlotAxisSchema(xml, pds.left);
+                loadPlotAxisSchema(xml, pds.left, legacy);
             else if (xml.attributes().value("align") == "right")
-                loadPlotAxisSchema(xml, pds.right);
+                loadPlotAxisSchema(xml, pds.right, legacy);
 
         }
 
         if (xml.name().toString() == "serie") {
+            QColor color(xml.attributes().value("color").toString());
+            if (legacy && color == QColor(Qt::black))
+                color = PlotColors::series(seriesIndex);
+
+            ++seriesIndex;
+
             if (xml.attributes().value("align").toString() == "left")
-                pds.left.dataList.insert(static_cast<ValueID>(xml.attributes().value("id").toInt()), QColor(xml.attributes().value("color").toString()));
+                pds.left.dataList.insert(static_cast<ValueID>(xml.attributes().value("id").toInt()), color);
             else if (xml.attributes().value("align").toString() == "right")
-                pds.right.dataList.insert(static_cast<ValueID>(xml.attributes().value("id").toInt()), QColor(xml.attributes().value("color").toString()));
+                pds.right.dataList.insert(static_cast<ValueID>(xml.attributes().value("id").toInt()), color);
 
         }
 
@@ -380,14 +398,23 @@ void radeon_profile::loadPlotSchemas(QXmlStreamReader &xml) {
 }
 
 void radeon_profile::loadTopbarItemsSchemas(const QXmlStreamReader &xml) {
+    const TopbarItemType type = static_cast<TopbarItemType>(xml.attributes().value("type").toInt());
+
+    // older configs stored the light theme text color (black) for text items,
+    // treat it as "follow the theme" so they stay readable with a dark theme
+    const bool legacyTextItem = !xml.attributes().hasAttribute("format") && type != TopbarItemType::PIE;
+    auto loadColor = [&xml, legacyTextItem](const QString &attribute) {
+        const QColor c(xml.attributes().value(attribute).toString());
+        return (legacyTextItem && c == QColor(Qt::black)) ? QColor() : c;
+    };
+
     TopbarItemDefinitionSchema tis(static_cast<ValueID>(xml.attributes().value("primaryValueId").toInt()),
-                                   static_cast<TopbarItemType>(xml.attributes().value("type").toInt()),
-                                   QColor(xml.attributes().value("primaryColor").toString()));
+                                   type, loadColor("primaryColor"));
 
     tis.setPieMaxValue(xml.attributes().value("pieMaxValue").toInt());
 
     if (xml.attributes().value("secondaryValueIdEnabled").toInt() == 1) {
-        tis.setSecondaryColor(QColor(xml.attributes().value("secondaryColor").toString()));
+        tis.setSecondaryColor(loadColor("secondaryColor"));
         tis.setSecondaryValueId(static_cast<ValueID>(xml.attributes().value("secondaryValueId").toInt()));
     }
 

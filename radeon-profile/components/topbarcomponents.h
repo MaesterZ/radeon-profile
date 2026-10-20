@@ -14,6 +14,17 @@ enum TopbarItemType {
     PIE
 };
 
+// sets the text color of a label, an invalid color makes it follow the theme
+inline void setLabelTextColor(QLabel *label, const QColor &c) {
+    QPalette p;
+
+    if (c.isValid())
+        p.setColor(QPalette::WindowText, c);
+
+    // a palette without resolved roles inherits everything, including theme changes
+    label->setPalette(p);
+}
+
 class TopbarItem {
 public:
     virtual void updateItemValue(const GPUDataContainer &data) = 0;
@@ -72,15 +83,11 @@ public:
     }
 
     void setPrimaryColor(const QColor &c) override {
-        QPalette p = this->palette();
-        p.setColor(this->foregroundRole(), c);
-        labelTop.setPalette(p);
+        setLabelTextColor(&labelTop, c);
     }
 
     void setSecondaryColor(const QColor &c) override {
-        QPalette p = this->palette();
-        p.setColor(this->foregroundRole(), c);
-        labelBottom.setPalette(p);
+        setLabelTextColor(&labelBottom, c);
     }
 
     void setSecondaryValueId(const ValueID vId) override {
@@ -116,9 +123,7 @@ public:
     }
 
     void setPrimaryColor(const QColor &c) override {
-        QPalette p = this->palette();
-        p.setColor(this->foregroundRole(), c);
-        this->QLabel::setPalette(p);
+        setLabelTextColor(this, c);
     }
 };
 
@@ -199,10 +204,6 @@ public:
     QList<TopbarItemDefinitionSchema> schemas;
     QList<TopbarItem*> items;
 
-    void setDefaultForeground(const QColor &c) {
-        defaultForeground = c;
-    }
-
     void createTopbar(QHBoxLayout *layout) {
         items.clear();
 
@@ -227,7 +228,7 @@ public:
     }
 
     void addToLayout(QHBoxLayout *layout, const TopbarItemDefinitionSchema &tis) {
-        TopbarItem *item;
+        TopbarItem *item = nullptr;
 
         switch (tis.type) {
             case TopbarItemType::LARGE_LABEL:
@@ -240,6 +241,10 @@ public:
                 item = new PieItem(tis.pieMaxValue, tis.primaryValueId, tis.primaryColor, layout->widget());
                 break;
         }
+
+        // unknown type, e.g. from a hand-edited config
+        if (item == nullptr)
+            return;
 
         if (tis.secondaryValueIdEnabled) {
             item->setSecondaryValueId(tis.secondaryValueId);
@@ -255,16 +260,17 @@ public:
             ti->updateItemValue(data);
     }
 
+    // text items get an invalid color, so they follow the theme
     void createDefaultTopbarSchema(const QList<ValueID> &availableData) {
         if (availableData.contains(ValueID::CLK_CORE)) {
-            TopbarItemDefinitionSchema tis(ValueID::CLK_CORE, TopbarItemType::LABEL_PAIR, defaultForeground);
+            TopbarItemDefinitionSchema tis(ValueID::CLK_CORE, TopbarItemType::LABEL_PAIR, QColor());
             tis.setSecondaryValueId(ValueID::CLK_MEM);
-            tis.setSecondaryColor(defaultForeground);
+            tis.setSecondaryColor(QColor());
             addSchema(tis);
         }
 
         if (availableData.contains(ValueID::TEMPERATURE_CURRENT)) {
-            TopbarItemDefinitionSchema tis(ValueID::TEMPERATURE_CURRENT, TopbarItemType::LARGE_LABEL, defaultForeground);
+            TopbarItemDefinitionSchema tis(ValueID::TEMPERATURE_CURRENT, TopbarItemType::LARGE_LABEL, QColor());
             addSchema(tis);
         }
 
@@ -283,9 +289,6 @@ public:
             addSchema(tis);
         }
     }
-
-private:
-    QColor defaultForeground;
 };
 
 
