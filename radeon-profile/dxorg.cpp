@@ -57,8 +57,13 @@ void dXorg::setupIoctl() {
 }
 
 QString getValueFromSysFsFile(QString fileName) {
-    QFile f(fileName);
     QString value("-1");
+
+    // optional files not present for this driver have no path (e.g. power_method on amdgpu)
+    if (fileName.isEmpty())
+        return value;
+
+    QFile f(fileName);
 
     if (f.open(QIODevice::ReadOnly))
         value = QString(f.readAll()).trimmed();

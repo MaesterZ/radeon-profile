@@ -7,6 +7,12 @@ not running, the app opened an empty window with no error, which looked like a s
 A failed daemon connection now shows a warning once and the connection is retried every 5
 seconds, so the UI fills in as soon as the daemon starts.
 
+### `radeon-profile/dxorg.cpp` — Skip reading sysfs files with no path
+
+On amdgpu the `power_method` file (radeon driver only) is never found, so its path is empty.
+Reading it made Qt print `QFSFileEngine::open: No file name specified` on every launch.
+`getValueFromSysFsFile()` now returns its "not available" value for an empty path.
+
 # [2026-05-12]
 
 ## Removed overclocking features
