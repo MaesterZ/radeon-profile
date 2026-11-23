@@ -6,7 +6,7 @@ pushd ./radeon-profile/
 # Full clean: removes generated Makefile, object files, moc output, and target binary
 [[ -f Makefile ]] && make distclean
 
-qmake radeon-profile.pro
+qmake6 radeon-profile.pro
 make -j$(nproc)
 
 popd

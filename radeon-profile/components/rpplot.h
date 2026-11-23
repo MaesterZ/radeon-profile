@@ -9,10 +9,48 @@
 #include "globalStuff.h"
 #include <QDebug>
 
-using namespace QtCharts;
 
 class PlotManager;
 class RPPlot;
+
+// plot colors; an invalid configured color means "follow the theme"
+namespace PlotColors {
+    inline QColor background(const QPalette &p) {
+        return p.color(QPalette::Base);
+    }
+
+    inline QColor text(const QPalette &p) {
+        return p.color(QPalette::Text);
+    }
+
+    // readable text on a user picked background
+    inline QColor contrastText(const QColor &background) {
+        return (background.lightnessF() > 0.5) ? QColor(0x20, 0x20, 0x20) : QColor(0xe8, 0xe8, 0xe8);
+    }
+
+    // a faint version of the text color, so the grid stays in the background in both themes
+    inline QColor grid(const QColor &text) {
+        QColor c = text;
+        c.setAlpha(50);
+        return c;
+    }
+
+    // mid luminance colors, at least 3:1 contrast on both white and dark backgrounds
+    inline QColor series(int index) {
+        static const QColor palette[] = {
+            QColor(0x3b, 0x82, 0xf6), // blue
+            QColor(0xea, 0x58, 0x0c), // orange
+            QColor(0x16, 0xa3, 0x4a), // green
+            QColor(0xa8, 0x55, 0xf7), // purple
+            QColor(0x0d, 0x94, 0x88), // teal
+            QColor(0xdc, 0x26, 0x26), // red
+            QColor(0xca, 0x8a, 0x04), // amber
+            QColor(0xdb, 0x27, 0x77)  // pink
+        };
+
+        return palette[index % (sizeof(palette) / sizeof(palette[0]))];
+    }
+}
 
 struct PlotInitialValues {
     int left = 0, right = 0;
@@ -42,6 +80,7 @@ class YAxis : public QValueAxis {
 
 public:
     ValueUnit unit;
+    QPen gridPen; // configured grid pen, an invalid color follows the theme
 
     YAxis() { }
 
@@ -80,6 +119,7 @@ public:
     QChart plotArea;
     YAxis *axisLeft = nullptr,  *axisRight = nullptr;
     QValueAxis timeAxis;
+    QColor background; // invalid follows the theme
 
     QList<DataSeries*> series;
 
@@ -89,6 +129,7 @@ public:
         plotArea.setMinimumSize(0,0);
         plotArea.setBackgroundRoundness(0);
         plotArea.legend()->setVisible(false);
+        plotArea.legend()->setAlignment(Qt::AlignRight);
         setRenderHint(QPainter::Antialiasing);
         plotArea.addAxis(&timeAxis, Qt::AlignBottom);
 //        plotArea.setAnimationOptions(QChart::SeriesAnimations);
@@ -109,9 +150,7 @@ public:
 
     void addAxis(const Qt::Alignment &a, const ValueUnit &u, const QPen &p, const int ticks) {
         YAxis *tmpax = new YAxis(u, this);
-        tmpax->setGridLinePen(p);
-        tmpax->setLabelsColor(p.color());
-        tmpax->setTitleBrush(p.brush());
+        tmpax->gridPen = p;
         tmpax->setTickCount(ticks);
         tmpax->setTitleText(globalStuff::getNameOfUnit(u));
 
@@ -121,7 +160,45 @@ public:
             axisLeft = tmpax;
 
         plotArea.addAxis(tmpax, a);
+        applyColors();
     }
+
+    // resolves the configured colors against the current theme
+    void applyColors() {
+        const QColor bg = background.isValid() ? background : PlotColors::background(palette());
+        const QColor text = background.isValid() ? PlotColors::contrastText(bg) : PlotColors::text(palette());
+        const QColor grid = PlotColors::grid(text);
+
+        plotArea.setBackgroundBrush(bg);
+        setBackgroundBrush(bg);
+        plotArea.legend()->setLabelColor(text);
+        timeAxis.setGridLineColor(grid);
+
+        for (YAxis *axis : {axisLeft, axisRight}) {
+            if (axis == nullptr)
+                continue;
+
+            QPen pen = axis->gridPen;
+            if (!pen.color().isValid())
+                pen.setColor(grid);
+
+            axis->setGridLinePen(pen);
+            axis->setLinePenColor(grid);
+            axis->setLabelsColor(text);
+            axis->setTitleBrush(text);
+        }
+    }
+
+protected:
+    void changeEvent(QEvent *event) override {
+        // the theme (palette) changed, e.g. switching between light and dark
+        if (event->type() == QEvent::PaletteChange)
+            applyColors();
+
+        QChartView::changeEvent(event);
+    }
+
+public:
 
     void updatePlot(int timestamp, const GPUDataContainer &data) {
         for (int i = 0; i < series.count(); ++i) {
@@ -309,19 +386,14 @@ public:
         }
     }
 
-    QColor invertColor(const QColor &c) {
-        return QColor::fromRgb(255 - c.red(), 255 - c.green(),255 - c.blue());
-    }
-
+    // an invalid color follows the theme
     void setPlotBackground(RPPlot *plot, const QColor &color) {
-        plot->timeAxis.setGridLineColor(invertColor(color));
-        plot->plotArea.legend()->setLabelColor(invertColor(color));
-        plot->plotArea.setBackgroundBrush(QBrush(color));
-        plot->setBackgroundBrush(QBrush(color));
+        plot->background = color;
+        plot->applyColors();
     }
 
     void setLineColor(RPPlot *plot, const int index, const QColor &color) {
-        plot->series.at(index)->setColor(color);
+        plot->series.at(index)->setPen(QPen(color, 2));
     }
 
     int addSeries(RPPlot *plot, ValueID id) {

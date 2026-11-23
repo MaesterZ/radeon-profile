@@ -165,11 +165,11 @@ void radeon_profile::configureDaemonPostDeviceInit() {
 void radeon_profile::connectSignals()
 {
     // fix for warning: QMetaObject::connectSlotsByName: No matching signal for...
-    connect(ui->combo_gpus,SIGNAL(currentIndexChanged(QString)),this,SLOT(gpuChanged()));
+    connect(ui->combo_gpus, &QComboBox::currentIndexChanged, this, &radeon_profile::gpuChanged);
     connect(ui->combo_pLevel,SIGNAL(currentIndexChanged(int)),this,SLOT(setPowerLevelFromCombo()));
     connect(timer,SIGNAL(timeout()),this,SLOT(mainTimerEvent()));
-    connect(ui->combo_fanProfiles, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(createFanProfileListaAndGraph(const QString&)));
-    connect(&group_profileControlButtons, SIGNAL(buttonClicked(int)), this, SLOT(setPowerProfile(int)));
+    connect(ui->combo_fanProfiles, &QComboBox::currentTextChanged, this, &radeon_profile::createFanProfileListaAndGraph);
+    connect(&group_profileControlButtons, &QButtonGroup::idClicked, this, &radeon_profile::setPowerProfile);
 }
 
 void radeon_profile::setupDeviceDependantUiElements()
@@ -465,7 +465,7 @@ void radeon_profile::adjustFanSpeed() {
 
     // find bounds of current temperature
     auto high = currentFanProfile.upperBound(device.gpuData.value(ValueID::TEMPERATURE_CURRENT).value);
-    auto low = (currentFanProfile.size() > 1 ? high - 1 : high);
+    auto low = (currentFanProfile.size() > 1 ? std::prev(high) : high);
 
     int hSpeed = high.value(),
             lSpeed = low.value();

@@ -16,10 +16,10 @@ public:
 
     RPEvent() { }
 
-    bool enabled;
+    bool enabled = false;
     QString name, activationBinary, fanProfileNameChange, powerProfileChange, powerLevelChange;
-    unsigned short fixedFanSpeedChange, activationTemperature, fanComboIndex;
-    RPEventType type;
+    unsigned short fixedFanSpeedChange = 0, activationTemperature = 0, fanComboIndex = 0;
+    RPEventType type = RPEventType::TEMPERATURE;
 
     bool isActivationConditonFulfilled(const CheckInfoStruct &check) {
         switch (type) {

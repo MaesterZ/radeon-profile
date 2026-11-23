@@ -13,13 +13,12 @@ Install and run [`radeon-profile-daemon`](https://github.com/MaesterZ/radeon-pro
 * Monitoring of basic GPU parameters (frequencies, voltages, usage, temperature, fan speed)
 * DPM profiles and power levels
 * Fan control (HD 7000+), definition of multiple custom curves or fixed speed
-* Overclocking (amdgpu) (Wattman, Overdrive, PowerPlay etc)
 * Per app profiles/Event definitions (i.e. change fan profile when temp above defined or set DPM to high when selected binary executed)
 * Define binaries to run with set of environment variablees (i.e. GALLIUM_HUD, MESA, LIBGL etc)
 
 # Dependencies
 
-* Qt 5.6<= (qt5-base and qt5-charts) (On Debian/Ubuntu: `qt5-default libqt5charts5-dev`)
+* Qt 6 (qt6-base and qt6-charts) (On Debian/Ubuntu: `qt6-base-dev qt6-charts-dev qmake6`)
 * libxrandr
 * libdrm (for amdgpu, 2.4.79<=, more recent, the better)
 * recent kernel (for amdgpu 4.12<=, more recent, the better)
@@ -33,9 +32,15 @@ For full functionality:
 # Build
 
 ```bash
+./build.sh
+```
+
+Or manually:
+
+```bash
 cd radeon-profile/
-qmake
-make 
+qmake6
+make
 ```
 
 The resulting binary is `./target/radeon-profile`.

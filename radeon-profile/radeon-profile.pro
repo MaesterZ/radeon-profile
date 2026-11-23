@@ -1,9 +1,9 @@
-QT       += core gui network widgets charts
+QT       += core gui network widgets charts concurrent
 
 TARGET   = radeon-profile
 TEMPLATE = app
 
-CONFIG  += c++11
+CONFIG  += c++17
 
 CONFIG(release, debug|release) {
     DEFINES += QT_NO_DEBUG_OUTPUT

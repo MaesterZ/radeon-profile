@@ -127,7 +127,7 @@ QColor getColor(const QColor &c) {
 
 void Dialog_plotsConfiguration::on_btn_setPlotsBackground_clicked()
 {
-    ui->frame_plotsBackground->setPalette(QPalette(getColor(ui->frame_plotsBackground->palette().background().color())));
+    ui->frame_plotsBackground->setPalette(QPalette(getColor(ui->frame_plotsBackground->palette().window().color())));
 }
 
 void Dialog_plotsConfiguration::on_btn_savePlotsConfiguration_clicked()
@@ -135,7 +135,7 @@ void Dialog_plotsConfiguration::on_btn_savePlotsConfiguration_clicked()
     plotManager->generalConfig.showLegend = ui->cb_showLegends->isChecked();
     plotManager->generalConfig.graphOffset = ui->cb_plotsRightGap->isChecked();
     plotManager->generalConfig.commonPlotsBackground = ui->cb_overridePlotsBg->isChecked();
-    plotManager->generalConfig.plotsBackground = ui->frame_plotsBackground->palette().background().color();
+    plotManager->generalConfig.plotsBackground = ui->frame_plotsBackground->palette().window().color();
 
     for (int i = 0; i < plotManager->schemas.count(); ++i)
         plotManager->schemas[i].enabled = ui->list_plotDefinitions->topLevelItem(i)->checkState(0) == Qt::Checked;

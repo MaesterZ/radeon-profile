@@ -46,6 +46,7 @@ private:
     QList<QTreeWidgetItem* > createDataListFromUnit(ValueUnit u);
     void init();
     QColor getColor(const QColor &c = Qt::black);
+    QColor getSelectedColor(const QFrame *frame, const QColor &themeColor);
     void addSelectedItemToSchema(int itemIndex, QTreeWidgetItem *item , QMap<ValueID, QColor> &schemaDataList);
     void loadListFromSchema(QTreeWidget *list, QMap<ValueID, QColor> selected);
 };

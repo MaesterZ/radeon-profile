@@ -18,8 +18,8 @@ Dialog_deineTopbarItem::Dialog_deineTopbarItem(QList<ValueID> *data, const GPUCo
     ui->frame_primaryColor->setAutoFillBackground(true);
     ui->frame_secondaryColor->setAutoFillBackground(true);
 
-    ui->frame_primaryColor->setPalette(QPalette(this->palette().foreground().color()));
-    ui->frame_secondaryColor->setPalette(QPalette(this->palette().foreground().color()));
+    ui->frame_primaryColor->setPalette(QPalette(this->palette().windowText().color()));
+    ui->frame_secondaryColor->setPalette(QPalette(this->palette().windowText().color()));
 }
 
 Dialog_deineTopbarItem::~Dialog_deineTopbarItem()
@@ -47,8 +47,20 @@ void Dialog_deineTopbarItem::setEditedSchema(TopbarItemDefinitionSchema tis) {
 
     ui->combo_primaryData->setCurrentIndex(ui->combo_primaryData->findData(QVariant::fromValue(tis.primaryValueId)));
     ui->combo_secondaryData->setCurrentIndex(ui->combo_secondaryData->findData(QVariant::fromValue(tis.secondaryValueId)));
-    ui->frame_primaryColor->setPalette(QPalette(tis.primaryColor));
-    ui->frame_secondaryColor->setPalette(QPalette(tis.secondaryColor));
+    // an invalid color follows the theme, show the theme text color for it
+    const QColor themeText = this->palette().windowText().color();
+    ui->frame_primaryColor->setPalette(QPalette(tis.primaryColor.isValid() ? tis.primaryColor : themeText));
+    ui->frame_secondaryColor->setPalette(QPalette(tis.secondaryColor.isValid() ? tis.secondaryColor : themeText));
+}
+
+QColor Dialog_deineTopbarItem::getSelectedTextColor(const QFrame *frame) {
+    const QColor c = frame->palette().window().color();
+
+    // text left at the theme text color follows the theme (pie colors are fill colors)
+    if (!ui->radio_pie->isChecked() && c == this->palette().windowText().color())
+        return QColor();
+
+    return c;
 }
 
 void Dialog_deineTopbarItem::createCombo(QComboBox *combo, const TopbarItemType type, bool emptyFirst) {
@@ -192,11 +204,11 @@ void Dialog_deineTopbarItem::on_btn_cancel_clicked()
 void Dialog_deineTopbarItem::on_btn_save_clicked()
 {
     editedSchema = TopbarItemDefinitionSchema(static_cast<ValueID>(ui->combo_primaryData->currentData().toInt()),
-                                              getItemType(), ui->frame_primaryColor->palette().background().color());
+                                              getItemType(), getSelectedTextColor(ui->frame_primaryColor));
 
     if (!ui->combo_secondaryData->currentText().isEmpty() && ui->combo_secondaryData->isEnabled()) {
         editedSchema.setSecondaryValueId(static_cast<ValueID>(ui->combo_secondaryData->currentData().toInt()));
-        editedSchema.setSecondaryColor(ui->frame_secondaryColor->palette().background().color());
+        editedSchema.setSecondaryColor(getSelectedTextColor(ui->frame_secondaryColor));
     }
 
     if (ui->radio_pie->isChecked()) {
@@ -219,11 +231,11 @@ void Dialog_deineTopbarItem::on_btn_save_clicked()
 
 void Dialog_deineTopbarItem::on_btn_setPrimaryColor_clicked()
 {
-    ui->frame_primaryColor->setPalette(QPalette(getColor(ui->frame_primaryColor->palette().background().color())));
+    ui->frame_primaryColor->setPalette(QPalette(getColor(ui->frame_primaryColor->palette().window().color())));
 }
 
 void Dialog_deineTopbarItem::on_btn_setSecondaryColor_clicked()
 {
-    ui->frame_secondaryColor->setPalette(QPalette(getColor(ui->frame_secondaryColor->palette().background().color())));
+    ui->frame_secondaryColor->setPalette(QPalette(getColor(ui->frame_secondaryColor->palette().window().color())));
 
 }
